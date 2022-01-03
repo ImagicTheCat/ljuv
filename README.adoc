@@ -1,0 +1,20 @@
+= ljuv
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+:toc: left
+:toclevels: 5
+
+*ljuv* is a Lua library built on https://libuv.org/[libuv] and https://luajit.org/[LuaJIT] 2.1 (HEAD).
+
+A main event loop combined with coroutines can be a way to nicely parallelize and synchronize various operations, which is what computing is mostly about.
+
+Not only a binding to *libuv*, the library aims to expose different levels of abstraction and addresses problems like multi-threading.
+
+== Install
+
+See link:src[], link:rockspecs[] or https://luarocks.org/modules/imagicthecat-0a6b669a3a/ljuv[luarocks].
