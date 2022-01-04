@@ -1,6 +1,8 @@
 -- https://github.com/ImagicTheCat/ljuv
 -- MIT license (see LICENSE or src/ljuv.lua)
 
+-- FFI binding: libuv 1.42.0
+
 local ffi = require("ffi")
 
 if ffi.os == "Windows" then
