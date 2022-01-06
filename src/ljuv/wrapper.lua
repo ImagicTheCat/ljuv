@@ -3,8 +3,17 @@
 local ffi = require("ffi")
 
 ffi.cdef[[
+typedef struct ljuv_object ljuv_object;
+typedef struct ljuv_channel ljuv_channel;
+
 typedef struct ljuv_wrapper{
-  int non_empty;
+  void (*object_retain)(ljuv_object *obj);
+  void (*object_release)(ljuv_object *obj);
+  ljuv_channel* (*channel_create)();
+  bool (*channel_push)(ljuv_channel *channel, const uint8_t *data, size_t size);
+  uint8_t* (*channel_pull)(ljuv_channel *channel, size_t *size);
+  size_t (*channel_count)(ljuv_channel *channel);
+  void (*channel_free_data)(uint8_t *data);
 } ljuv_wrapper;
 ]]
 
