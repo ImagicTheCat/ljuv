@@ -42,7 +42,7 @@ end
 -- Lazy main loop creation.
 local ljuv_mt = {__index = function(self, k)
   if k == "loop" then
-    self.loop = self.newLoop()
+    self.loop = self.new_loop()
     return self.loop
   end
 end}
@@ -69,7 +69,7 @@ end
 local Loop = {}
 local Loop_mt = {__index = Loop}
 
-function ljuv.newLoop()
+function ljuv.new_loop()
   local handle = ffi.cast("uv_loop_t*", C.malloc(L.uv_loop_size()))
   assert(handle ~= nil, "allocation failed")
   ffi.gc(handle, function(handle)
