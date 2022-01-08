@@ -25,19 +25,11 @@ SOFTWARE.
 ]]
 
 local ffi = require("ffi")
-ffi.cdef[[
-void* malloc(size_t);
-void free(void*);
-]]
 
-local C = ffi.C
+local api = require("ljuv.api")
 local L = require("ljuv.libuv")
-local wrapper = require("ljuv.wrapper")
-
--- Shallow table cloning.
-local function clone(t)
-  local nt = {}; for k,v in pairs(t) do nt[k] = v end; return nt
-end
+local C = ffi.C
+local uv_assert, refmap, refkey = api.assert, api.refmap, api.refkey
 
 -- Lazy main loop creation.
 local ljuv_mt = {__index = function(self, k)
@@ -47,24 +39,6 @@ local ljuv_mt = {__index = function(self, k)
   end
 end}
 local ljuv = setmetatable({}, ljuv_mt)
-
-local function uv_assert(code)
-  if code < 0 then error(ffi.string(libuv.uv_strerror(code)), 2) end
-end
-
--- Cdata to Lua reference mapping.
-local refmap = {}
-
-local ptr_s = ffi.new("struct{ void *ptr; }")
--- Convert cdata pointer to keyable value.
-local function refkey(cdata)
-  local key = ffi.cast("uintptr_t", cdata)
-  if key <= 2^53LL then return tonumber(key) -- number key
-  else -- fallback to string key
-    ptr_s.ptr = cdata
-    return ffi.string(ptr_s, ffi.sizeof(ptr_s))
-  end
-end
 
 local Loop = {}
 local Loop_mt = {__index = Loop}
@@ -163,7 +137,7 @@ local function handle_constructor(enum_type, ptype, metatable, init_func)
   end
 end
 
-local Timer = clone(Handle)
+local Timer = api.clone(Handle)
 local Timer_mt = {__index = Timer}
 
 -- Timer callback handling.
