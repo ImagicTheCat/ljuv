@@ -86,7 +86,7 @@ void channel_destroy(ljuv_object *obj)
 
 // Create channel (object).
 // return NULL on failure
-ljuv_channel* channel_create()
+ljuv_channel* channel_create(void)
 {
   // object
   ljuv_channel *channel = malloc(sizeof(ljuv_channel));
@@ -160,7 +160,7 @@ void channel_free_data(uint8_t *data){ free(data); }
 typedef struct ljuv_wrapper{
   void (*object_retain)(ljuv_object *obj);
   void (*object_release)(ljuv_object *obj);
-  ljuv_channel* (*channel_create)();
+  ljuv_channel* (*channel_create)(void);
   bool (*channel_push)(ljuv_channel *channel, const uint8_t *data, size_t size);
   uint8_t* (*channel_pull)(ljuv_channel *channel, size_t *size);
   size_t (*channel_count)(ljuv_channel *channel);
