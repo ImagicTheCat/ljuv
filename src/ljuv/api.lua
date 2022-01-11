@@ -9,19 +9,16 @@ void* malloc(size_t);
 void free(void*);
 ]]
 
-local api = {}
+local M = {}
 
 -- uv assert
-function api.assert(code)
+function M.assert(code)
   if code < 0 then error(ffi.string(libuv.uv_strerror(code)), 2) end
 end
 
--- Cdata to Lua reference mapping.
-api.refmap = {}
-
 local ptr_s = ffi.new("struct{ void *ptr; }")
--- Convert cdata pointer to keyable value.
-function api.refkey(cdata)
+-- Convert cdata pointer to keyable value (type independent, address only).
+function M.refkey(cdata)
   local key = ffi.cast("uintptr_t", cdata)
   if key <= 2^53LL then return tonumber(key) -- number key
   else -- fallback to string key
@@ -31,8 +28,8 @@ function api.refkey(cdata)
 end
 
 -- Shallow table cloning.
-function api.clone(t)
+function M.clone(t)
   local nt = {}; for k,v in pairs(t) do nt[k] = v end; return nt
 end
 
-return api
+return M
