@@ -32,7 +32,7 @@ local L = require("ljuv.libuv")
 local C = ffi.C
 local uv_assert, refkey = api.assert, api.refkey
 
-local function ccheck(self) assert(self, "invalid self cdata") end
+local function ccheck(self) assert(self, "invalid cdata self") end
 
 -- Lazy main loop creation.
 local ljuv_mt = {__index = function(self, k)
