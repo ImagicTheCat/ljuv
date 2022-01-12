@@ -40,6 +40,18 @@ function Channel:pull()
   wrapper.channel_free_data(ptr)
   return unpack(data, 1, data.n)
 end
+function Channel:try_pull()
+  ccheck(self)
+  local size = ffi.new("size_t[1]")
+  local ptr = wrapper.channel_try_pull(self, size)
+  if ptr ~= nil then
+    decode_buf:set(ptr, size[0])
+    local data = decode_buf:decode()
+    wrapper.channel_free_data(ptr)
+    return true, unpack(data, 1, data.n)
+  end
+  return false
+end
 
 function Channel:count() ccheck(self); return tonumber(wrapper.channel_count(self)) end
 

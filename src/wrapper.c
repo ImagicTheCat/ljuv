@@ -126,13 +126,9 @@ bool channel_push(ljuv_channel *channel, const uint8_t *data, size_t size)
   return true;
 }
 
-// Pull message data (blocks if empty).
-// The returned data must be freed with channel_free_data().
-uint8_t* channel_pull(ljuv_channel *channel, size_t *size)
+// [private] Dequeue channel (no checks).
+uint8_t* channel_dequeue(ljuv_channel *channel, size_t *size)
 {
-  // wait
-  uv_sem_wait(&channel->semaphore);
-  // pop from queue
   object_lock((ljuv_object*)channel);
   channel_node *node = channel->front;
   channel->front = node->prev;
@@ -144,6 +140,25 @@ uint8_t* channel_pull(ljuv_channel *channel, size_t *size)
   uint8_t *data = node->data;
   free(node);
   return data;
+}
+
+// Pull message data (blocks if empty).
+// The returned data must be freed with channel_free_data().
+uint8_t* channel_pull(ljuv_channel *channel, size_t *size)
+{
+  // wait
+  uv_sem_wait(&channel->semaphore);
+  return channel_dequeue(channel, size);
+}
+
+// Pull message data (non-blocking).
+// Return non-NULL on success; the returned data must be freed with channel_free_data().
+uint8_t* channel_try_pull(ljuv_channel *channel, size_t *size)
+{
+  // wait
+  if(uv_sem_trywait(&channel->semaphore) == 0)
+    return channel_dequeue(channel, size);
+  else return NULL;
 }
 
 // Count the number of pending messages.
@@ -164,6 +179,7 @@ typedef struct ljuv_wrapper{
   ljuv_channel* (*channel_create)(void);
   bool (*channel_push)(ljuv_channel *channel, const uint8_t *data, size_t size);
   uint8_t* (*channel_pull)(ljuv_channel *channel, size_t *size);
+  uint8_t* (*channel_try_pull)(ljuv_channel *channel, size_t *size);
   size_t (*channel_count)(ljuv_channel *channel);
   void (*channel_free_data)(uint8_t *data);
 } ljuv_wrapper;
@@ -174,6 +190,7 @@ static ljuv_wrapper wrapper = {
   channel_create,
   channel_push,
   channel_pull,
+  channel_try_pull,
   channel_count,
   channel_free_data
 };
