@@ -102,7 +102,7 @@ ljuv_channel* channel_create(void)
 }
 
 // Push message data (makes a copy).
-// return false on failure
+// return false on allocation failure
 bool channel_push(ljuv_channel *channel, const uint8_t *data, size_t size)
 {
   // copy data
@@ -123,6 +123,7 @@ bool channel_push(ljuv_channel *channel, const uint8_t *data, size_t size)
   object_unlock((ljuv_object*)channel);
   // post
   uv_sem_post(&channel->semaphore);
+  return true;
 }
 
 // Pull message data (blocks if empty).

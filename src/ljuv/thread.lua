@@ -27,7 +27,7 @@ function Channel:push(...)
   if not buf then buf = buffer.new(); channels_data[self] = buf end
   buf:reset()
   buf:encode({n = select("#", ...), ...})
-  wrapper.channel_push(self, buf:ref())
+  assert(wrapper.channel_push(self, buf:ref()), "failed to allocate channel data")
 end
 
 local decode_buf = buffer.new()
