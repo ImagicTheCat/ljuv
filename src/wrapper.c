@@ -211,6 +211,8 @@ typedef struct ljuv_thread{
   uv_mutex_t mutex;
   lua_State *L;
   bool running;
+  char *data;
+  size_t data_size;
 } ljuv_thread;
 
 static const char thread_lua[] =
@@ -239,7 +241,17 @@ void thread_run(void *arg)
   luaL_openlibs(L);
   luaL_loadbuffer(L, thread_lua, strlen(thread_lua), "=[ljuv thread]");
   lua_call(L, 0, 0);
+  // handle return data
+  lua_getglobal(thread->L, "ljuv_data");
+  const char* data_ptr = lua_tolstring(thread->L, -1, &thread->data_size);
+  if(data_ptr && thread->data_size > 0){
+    thread->data = malloc(thread->data_size);
+    if(thread->data) memcpy(thread->data, data_ptr, thread->data_size);
+  }
+  else
+    thread->data = NULL;
   // end
+  lua_close(thread->L);
   uv_mutex_lock(&thread->mutex);
   thread->running = false;
   uv_mutex_unlock(&thread->mutex);
@@ -287,14 +299,8 @@ bool thread_running(ljuv_thread *thread)
 bool thread_join(ljuv_thread *thread, char **data, size_t *size)
 {
   if(uv_thread_join(&thread->handle) == 0){
-    lua_getglobal(thread->L, "ljuv_data");
-    const char* data_ptr = lua_tolstring(thread->L, -1, size);
-    *data = NULL;
-    if(data_ptr && *size > 0){
-      *data = malloc(*size);
-      if(*data) memcpy(*data, data_ptr, *size);
-    }
-    lua_close(thread->L);
+    *data = thread->data;
+    *size = thread->data_size;
     uv_mutex_destroy(&thread->mutex);
     free(thread);
     return true;
