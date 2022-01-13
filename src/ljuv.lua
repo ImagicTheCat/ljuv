@@ -45,6 +45,7 @@ local ljuv = setmetatable({}, ljuv_mt)
 
 ljuv.assert = uv_assert
 ljuv.new_channel = thread.new_channel
+ljuv.new_thread = thread.new_thread
 
 -- Loop
 

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <lua.h>
 #include <lauxlib.h>
+#include <lualib.h>
 #include <uv.h>
 
 // Object multi-threaded reference counting.
@@ -143,7 +144,7 @@ uint8_t* channel_dequeue(ljuv_channel *channel, size_t *size)
 }
 
 // Pull message data (blocks if empty).
-// The returned data must be freed with channel_free_data().
+// The returned data must be freed with free().
 uint8_t* channel_pull(ljuv_channel *channel, size_t *size)
 {
   // wait
@@ -152,7 +153,7 @@ uint8_t* channel_pull(ljuv_channel *channel, size_t *size)
 }
 
 // Pull message data (non-blocking).
-// Return non-NULL on success; the returned data must be freed with channel_free_data().
+// Return non-NULL on success; the returned data must be freed with free().
 uint8_t* channel_try_pull(ljuv_channel *channel, size_t *size)
 {
   // wait
@@ -169,11 +170,88 @@ size_t channel_count(ljuv_channel *channel)
   object_unlock((ljuv_object*)channel);
   return count;
 }
-void channel_free_data(uint8_t *data){ free(data); }
+
+// Thread
+
+typedef struct ljuv_thread{
+  uv_thread_t handle;
+  lua_State *L;
+} ljuv_thread;
+
+static const char thread_lua[] =
+  "local function pack(...) return {n = select('#', ...), ...} end\n\
+  local buffer = require('string.buffer')\n\
+  local errtrace\n\
+  local function error_handler(err) errtrace = debug.traceback(err, 2) end\n\
+  -- execute\n\
+  local ok, data = xpcall(function()\n\
+    local data = buffer.decode(ljuv_data)\n\
+    ljuv_data = nil\n\
+    package.path, package.cpath = data.path, data.cpath\n\
+    local func, err = load(data.func)\n\
+    assert(func, err)\n\
+    local rets = pack(true, func(unpack(data.args, 1, data.args.n)))\n\
+    return buffer.encode(rets)\n\
+  end, error_handler)\n\
+  if ok then ljuv_data = data\n\
+  else ljuv_data = buffer.encode(pack(false, errtrace)) end\n";
+
+// Thread entry function.
+void thread_run(void *arg)
+{
+  lua_State *L = arg;
+  luaL_openlibs(L);
+  luaL_loadbuffer(L, thread_lua, strlen(thread_lua), "=[ljuv thread]");
+  lua_call(L, 0, 0);
+}
+
+// Create thread.
+// return NULL on failure
+ljuv_thread* thread_create(const char *data, size_t size)
+{
+  ljuv_thread *thread = malloc(sizeof(ljuv_thread));
+  if(!thread) return NULL;
+  // setup Lua state
+  lua_State *L = luaL_newstate();
+  if(!L){ free(thread); return NULL; }
+  thread->L = L;
+  lua_pushlstring(L, data, size);
+  lua_setglobal(L, "ljuv_data");
+  // run
+  if(uv_thread_create(&thread->handle, thread_run, L) != 0){
+    lua_close(L);
+    free(thread);
+    return NULL;
+  }
+  return thread;
+}
+
+// Join thread.
+// return true on success
+//
+// On success, thread resources are released and data/size are filled.
+// The data pointer, if not NULL, must be freed with free().
+bool thread_join(ljuv_thread *thread, char **data, size_t *size)
+{
+  if(uv_thread_join(&thread->handle) == 0){
+    lua_getglobal(thread->L, "ljuv_data");
+    const char* data_ptr = lua_tolstring(thread->L, -1, size);
+    *data = NULL;
+    if(data_ptr){
+      *data = malloc(*size);
+      memcpy(*data, data_ptr, *size);
+    }
+    lua_close(thread->L);
+    free(thread);
+    return true;
+  }
+  else return false;
+}
 
 // Wrapper (expose functions)
 
 typedef struct ljuv_wrapper{
+  void (*free)(void *data);
   void (*object_retain)(ljuv_object *obj);
   void (*object_release)(ljuv_object *obj);
   ljuv_channel* (*channel_create)(void);
@@ -181,10 +259,12 @@ typedef struct ljuv_wrapper{
   uint8_t* (*channel_pull)(ljuv_channel *channel, size_t *size);
   uint8_t* (*channel_try_pull)(ljuv_channel *channel, size_t *size);
   size_t (*channel_count)(ljuv_channel *channel);
-  void (*channel_free_data)(uint8_t *data);
+  ljuv_thread* (*thread_create)(const char *data, size_t size);
+  bool (*thread_join)(ljuv_thread *thread, char **data, size_t *size);
 } ljuv_wrapper;
 
 static ljuv_wrapper wrapper = {
+  free,
   object_retain,
   object_release,
   channel_create,
@@ -192,7 +272,8 @@ static ljuv_wrapper wrapper = {
   channel_pull,
   channel_try_pull,
   channel_count,
-  channel_free_data
+  thread_create,
+  thread_join
 };
 
 int luaopen_ljuv_wrapper_c(lua_State *L)
