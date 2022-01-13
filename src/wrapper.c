@@ -45,6 +45,39 @@ void object_release(ljuv_object *obj)
 void object_lock(ljuv_object *obj){ uv_mutex_lock(&obj->mutex); }
 void object_unlock(ljuv_object *obj){ uv_mutex_unlock(&obj->mutex); }
 
+// Shared flag
+
+typedef struct ljuv_shared_flag{
+  ljuv_object object; // inheritance
+  int flag;
+} ljuv_shared_flag;
+
+// Create shared flag.
+// return NULL on failure
+ljuv_shared_flag* shared_flag_create(int flag)
+{
+  // object
+  ljuv_shared_flag *shared_flag = malloc(sizeof(ljuv_shared_flag));
+  if(!shared_flag) return NULL;
+  int status = object_init((ljuv_object*)shared_flag, NULL);
+  if(status < 0){ free(shared_flag); return NULL; }
+  shared_flag->flag = flag;
+  return shared_flag;
+}
+void shared_flag_set(ljuv_shared_flag *self, int flag)
+{
+  object_lock((ljuv_object*)self);
+  self->flag = flag;
+  object_unlock((ljuv_object*)self);
+}
+int shared_flag_get(ljuv_shared_flag *self)
+{
+  object_lock((ljuv_object*)self);
+  int flag = self->flag;
+  object_unlock((ljuv_object*)self);
+  return flag;
+}
+
 // Channel
 
 typedef struct channel_node{
@@ -254,6 +287,9 @@ typedef struct ljuv_wrapper{
   void (*free)(void *data);
   void (*object_retain)(ljuv_object *obj);
   void (*object_release)(ljuv_object *obj);
+  ljuv_shared_flag* (*shared_flag_create)(int flag);
+  int (*shared_flag_get)(ljuv_shared_flag *self);
+  void (*shared_flag_set)(ljuv_shared_flag *self, int flag);
   ljuv_channel* (*channel_create)(void);
   bool (*channel_push)(ljuv_channel *channel, const uint8_t *data, size_t size);
   uint8_t* (*channel_pull)(ljuv_channel *channel, size_t *size);
@@ -267,6 +303,9 @@ static ljuv_wrapper wrapper = {
   free,
   object_retain,
   object_release,
+  shared_flag_create,
+  shared_flag_get,
+  shared_flag_set,
   channel_create,
   channel_push,
   channel_pull,

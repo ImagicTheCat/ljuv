@@ -12,6 +12,24 @@ local decode_buf = buffer.new()
 
 local M = {}
 
+-- Shared flag
+
+local SharedFlag = {}
+local SharedFlag_mt = {__index = SharedFlag}
+
+local function SharedFlag_gc(self)
+  wrapper.object_release(ffi.cast("ljuv_object*", self))
+end
+function M.new_shared_flag(flag)
+  local shared_flag = wrapper.shared_flag_create(flag)
+  assert(shared_flag ~= nil, "failed to create shared flag")
+  return ffi.gc(shared_flag, SharedFlag_gc)
+end
+function SharedFlag:set(flag) ccheck(self); wrapper.shared_flag_set(self, flag) end
+function SharedFlag:get() ccheck(self); return wrapper.shared_flag_get(self) end
+
+ffi.metatype("ljuv_shared_flag", SharedFlag_mt)
+
 -- Channel
 
 local Channel = {}
@@ -81,6 +99,7 @@ function M.new_thread(func, ...)
 end
 
 function Thread:join()
+  ccheck(self)
   local size = ffi.new("size_t[1]")
   local data = ffi.new("char*[1]")
   assert(threads_data[self], "thread already joined")
