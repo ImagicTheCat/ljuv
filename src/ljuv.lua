@@ -44,8 +44,10 @@ end}
 local ljuv = setmetatable({}, ljuv_mt)
 
 ljuv.assert = uv_assert
+ljuv.new_shared_flag = thread.new_shared_flag
 ljuv.new_channel = thread.new_channel
 ljuv.new_thread = thread.new_thread
+ljuv.import, ljuv.export = thread.import, thread.export
 
 -- Loop
 

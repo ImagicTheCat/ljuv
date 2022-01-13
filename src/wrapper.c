@@ -270,9 +270,9 @@ bool thread_join(ljuv_thread *thread, char **data, size_t *size)
     lua_getglobal(thread->L, "ljuv_data");
     const char* data_ptr = lua_tolstring(thread->L, -1, size);
     *data = NULL;
-    if(data_ptr){
+    if(data_ptr && *size > 0){
       *data = malloc(*size);
-      memcpy(*data, data_ptr, *size);
+      if(*data) memcpy(*data, data_ptr, *size);
     }
     lua_close(thread->L);
     free(thread);

@@ -104,14 +104,35 @@ function Thread:join()
   local data = ffi.new("char*[1]")
   assert(threads_data[self], "thread already joined")
   assert(wrapper.thread_join(self, data, size), "failed to join thread")
+  threads_data[self] = nil -- mark joined/released
   assert(data[0] ~= nil, "missing thread join data")
   local str = ffi.string(data[0], size[0])
   wrapper.free(data[0])
-  threads_data[self] = nil -- mark joined/released
   local ldata = buffer.decode(str)
   return unpack(ldata, 1, ldata.n)
 end
 
 ffi.metatype("ljuv_thread", Thread_mt)
+
+-- Export / Import
+
+function M.export(o)
+  if ffi.istype("ljuv_shared_flag*", o) then
+    wrapper.object_retain(ffi.cast("ljuv_object*", o))
+    return {"shared_flag", ffi.cast("uintptr_t", ffi.cast("void*", o))}
+  elseif ffi.istype("ljuv_channel*", o) then
+    wrapper.object_retain(ffi.cast("ljuv_object*", o))
+    return {"channel", ffi.cast("uintptr_t", ffi.cast("void*", o))}
+  else error("no defined export for the given object") end
+end
+function M.import(payload)
+  if payload[1] == "shared_flag" then
+    local sflag = ffi.cast("ljuv_shared_flag*", payload[2])
+    return ffi.gc(sflag, SharedFlag_gc)
+  elseif payload[1] == "channel" then
+    local channel = ffi.cast("ljuv_channel*", payload[2])
+    return ffi.gc(channel, Channel_gc)
+  else error("no defined import for the given payload") end
+end
 
 return M
