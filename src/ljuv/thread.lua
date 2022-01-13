@@ -97,9 +97,11 @@ function M.new_thread(func, ...)
   threads_data[thread] = true -- mark active
   return thread
 end
-
+function Thread:running()
+  if not threads_data[self] then return false end
+  return wrapper.thread_running(self)
+end
 function Thread:join()
-  ccheck(self)
   local size = ffi.new("size_t[1]")
   local data = ffi.new("char*[1]")
   assert(threads_data[self], "thread already joined")

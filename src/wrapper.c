@@ -208,7 +208,9 @@ size_t channel_count(ljuv_channel *channel)
 
 typedef struct ljuv_thread{
   uv_thread_t handle;
+  uv_mutex_t mutex;
   lua_State *L;
+  bool running;
 } ljuv_thread;
 
 static const char thread_lua[] =
@@ -232,10 +234,15 @@ static const char thread_lua[] =
 // Thread entry function.
 void thread_run(void *arg)
 {
-  lua_State *L = arg;
+  ljuv_thread *thread = arg;
+  lua_State *L = thread->L;
   luaL_openlibs(L);
   luaL_loadbuffer(L, thread_lua, strlen(thread_lua), "=[ljuv thread]");
   lua_call(L, 0, 0);
+  // end
+  uv_mutex_lock(&thread->mutex);
+  thread->running = false;
+  uv_mutex_unlock(&thread->mutex);
 }
 
 // Create thread.
@@ -244,25 +251,38 @@ ljuv_thread* thread_create(const char *data, size_t size)
 {
   ljuv_thread *thread = malloc(sizeof(ljuv_thread));
   if(!thread) return NULL;
+  // init mutex
+  if(uv_mutex_init(&thread->mutex) < 0){ free(thread); return NULL; }
   // setup Lua state
   lua_State *L = luaL_newstate();
-  if(!L){ free(thread); return NULL; }
+  if(!L){ uv_mutex_destroy(&thread->mutex); free(thread); return NULL; }
   thread->L = L;
+  thread->running = true;
   lua_pushlstring(L, data, size);
   lua_setglobal(L, "ljuv_data");
   // run
-  if(uv_thread_create(&thread->handle, thread_run, L) != 0){
+  if(uv_thread_create(&thread->handle, thread_run, thread) != 0){
     lua_close(L);
+    uv_mutex_destroy(&thread->mutex);
     free(thread);
     return NULL;
   }
   return thread;
 }
 
+// Check if the thread is running.
+bool thread_running(ljuv_thread *thread)
+{
+  uv_mutex_lock(&thread->mutex);
+  bool running = thread->running;
+  uv_mutex_unlock(&thread->mutex);
+  return running;
+}
+
 // Join thread.
 // return true on success
 //
-// On success, thread resources are released and data/size are filled.
+// On success, thread data are released and data/size are filled.
 // The data pointer, if not NULL, must be freed with free().
 bool thread_join(ljuv_thread *thread, char **data, size_t *size)
 {
@@ -275,6 +295,7 @@ bool thread_join(ljuv_thread *thread, char **data, size_t *size)
       if(*data) memcpy(*data, data_ptr, *size);
     }
     lua_close(thread->L);
+    uv_mutex_destroy(&thread->mutex);
     free(thread);
     return true;
   }
@@ -296,6 +317,7 @@ typedef struct ljuv_wrapper{
   uint8_t* (*channel_try_pull)(ljuv_channel *channel, size_t *size);
   size_t (*channel_count)(ljuv_channel *channel);
   ljuv_thread* (*thread_create)(const char *data, size_t size);
+  bool (*thread_running)(ljuv_thread *thread);
   bool (*thread_join)(ljuv_thread *thread, char **data, size_t *size);
 } ljuv_wrapper;
 
@@ -312,6 +334,7 @@ static ljuv_wrapper wrapper = {
   channel_try_pull,
   channel_count,
   thread_create,
+  thread_running,
   thread_join
 };
 

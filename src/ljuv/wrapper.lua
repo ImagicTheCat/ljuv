@@ -21,6 +21,7 @@ typedef struct ljuv_wrapper{
   uint8_t* (*channel_try_pull)(ljuv_channel *channel, size_t *size);
   size_t (*channel_count)(ljuv_channel *channel);
   ljuv_thread* (*thread_create)(const char *data, size_t size);
+  bool (*thread_running)(ljuv_thread *thread);
   bool (*thread_join)(ljuv_thread *thread, char **data, size_t *size);
 } ljuv_wrapper;
 ]]
