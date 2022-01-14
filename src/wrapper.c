@@ -225,6 +225,8 @@ static const char thread_lua[] =
     local data = buffer.decode(ljuv_data)\n\
     ljuv_data = nil\n\
     package.path, package.cpath = data.path, data.cpath\n\
+    local ljuv = require('ljuv')\n\
+    for i, arg in ipairs(data.args) do data.args[i] = ljuv.import(arg, true) or arg end\n\
     local func, err = load(data.func)\n\
     assert(func, err)\n\
     local rets = pack(true, func(unpack(data.args, 1, data.args.n)))\n\

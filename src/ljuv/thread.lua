@@ -86,12 +86,24 @@ local Thread = {}
 local Thread_mt = {__index = Thread}
 local threads_data = setmetatable({}, {__mode = "k"})
 
+-- Create thread.
+-- The arguments must be encodable by string buffers
+-- It will try to export each argument first, i.e. it's possible to pass a
+-- channel without manual calls to export/import.
+--
+-- func: thread entry, a Lua function or a string of Lua code/bytecode
+-- ...: arguments passed to the function
 function M.new_thread(func, ...)
-  func = string.dump(func)
+  func = type(func) == "string" and func or string.dump(func)
+  -- try to export arguments
+  local args = pack(...)
+  for i, arg in ipairs(args) do args[i] = M.export(arg, true) or arg end
+  -- encode data
   local data = buffer.encode({
     path = package.path, cpath = package.cpath,
-    func = func, args = pack(...)
+    func = func, args = args
   })
+  -- create thread
   local thread = wrapper.thread_create(data, #data)
   assert(thread ~= nil, "failed to create thread")
   threads_data[thread] = true -- mark active
@@ -118,23 +130,42 @@ ffi.metatype("ljuv_thread", Thread_mt)
 
 -- Export / Import
 
-function M.export(o)
+local EXPORT_KEY = "ljuv-export-a9c0f255c"
+
+-- Export object to be passed to another thread.
+-- The returned payload must be imported exactly once to prevent memory leak and invalid
+-- memory accesses.
+--
+-- o: object
+-- soft: truthy to no throw errors on invalid object (returns nothing)
+-- return a payload encodable by string buffers
+function M.export(o, soft)
+  local payload
   if ffi.istype("ljuv_shared_flag*", o) then
     wrapper.object_retain(ffi.cast("ljuv_object*", o))
-    return {"shared_flag", ffi.cast("uintptr_t", ffi.cast("void*", o))}
+    payload = {"shared_flag", ffi.cast("uintptr_t", ffi.cast("void*", o))}
   elseif ffi.istype("ljuv_channel*", o) then
     wrapper.object_retain(ffi.cast("ljuv_object*", o))
-    return {"channel", ffi.cast("uintptr_t", ffi.cast("void*", o))}
-  else error("no defined export for the given object") end
+    payload = {"channel", ffi.cast("uintptr_t", ffi.cast("void*", o))}
+  end
+  if payload then return {[EXPORT_KEY] = payload}
+  elseif not soft then error("no defined export for the given object") end
 end
-function M.import(payload)
-  if payload[1] == "shared_flag" then
-    local sflag = ffi.cast("ljuv_shared_flag*", payload[2])
-    return ffi.gc(sflag, SharedFlag_gc)
-  elseif payload[1] == "channel" then
-    local channel = ffi.cast("ljuv_channel*", payload[2])
-    return ffi.gc(channel, Channel_gc)
-  else error("no defined import for the given payload") end
+
+-- Import object payload.
+-- soft: truthy to no throw errors on invalid payload (returns nothing)
+-- return imported object
+function M.import(payload, soft)
+  if type(payload) == "table" and payload[EXPORT_KEY] then
+    payload = payload[EXPORT_KEY]
+    if payload[1] == "shared_flag" then
+      local sflag = ffi.cast("ljuv_shared_flag*", ffi.cast("void*", payload[2]))
+      return ffi.gc(sflag, SharedFlag_gc)
+    elseif payload[1] == "channel" then
+      local channel = ffi.cast("ljuv_channel*", ffi.cast("void*", payload[2]))
+      return ffi.gc(channel, Channel_gc)
+    elseif not soft then error("no defined import for the given payload") end
+  elseif not soft then error("invalid payload") end
 end
 
 return M
