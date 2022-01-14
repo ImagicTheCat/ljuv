@@ -143,42 +143,51 @@ function Handle:close()
 end
 
 -- Create constructor function for a specific handle type.
-local function handle_constructor(enum_type, htype, metatable, init_func)
-  ffi.metatype(htype, metatable)
-  local ptype = ffi.typeof(htype.."*")
-  return function(loop)
+local function handle_constructor(enum_type, handle_type, metatable, init_func)
+  ffi.metatype(handle_type, metatable)
+  local ptype = ffi.typeof(handle_type.."*")
+  -- set init function
+  local init
+  if type(init_func) == "string" then -- basic passtrough
+    init = function(...) uv_assert(L[init_func](...)) end
+  else init = init_func end -- custom init function
+  -- generate constructor
+  return function(loop, ...)
     local handle = ffi.cast(ptype, C.malloc(L.uv_handle_size(L[enum_type])))
     assert(handle ~= nil, "allocation failed")
-    uv_assert(L[init_func](loop, handle))
     handles_refmap[refkey(handle)] = handle
     handles_data[handle] = {}
+    init(loop, handle, ...)
     return handle
   end
 end
 
-local Timer = api.clone(Handle)
-local Timer_mt = {__index = Timer}
-
--- Timer callback handling.
+-- Loop callback handling.
 -- Defers error propagation to loop:run() using loop:stop().
 local last_traceback
-local function timer_error_handler(err)
+local function callback_error_handler(err)
   last_traceback = debug.traceback(err, 2)
 end
-local timer_cb = ffi.cast("uv_timer_cb", function(handle)
-  local timer = handles_refmap[refkey(handle)]
-  local data = handles_data[timer]
+local function handle_callback(raw_handle, ...)
+  local handle = handles_refmap[refkey(raw_handle)]
+  local data = handles_data[handle]
   if data and data.callback then
-    local ok = xpcall(data.callback, timer_error_handler, timer)
+    local ok = xpcall(data.callback, callback_error_handler, handle, ...)
     if not ok then
-      -- Even if the callback called timer:close(), the memory is valid until the
+      -- Even if the callback called handle:close(), the memory is valid until the
       -- the next loop iteration.
-      local loop = loops_refmap[refkey(L.uv_handle_get_loop(timer))]
+      local loop = loops_refmap[refkey(L.uv_handle_get_loop(cast_handle(handle)))]
       table.insert(loops_data[loop].errors, last_traceback)
       loop:stop()
     end
   end
-end)
+end
+
+-- Timer
+
+local Timer = api.clone(Handle)
+local Timer_mt = {__index = Timer}
+local timer_cb = ffi.cast("uv_timer_cb", handle_callback)
 
 function Timer:start(timeout, t_repeat, callback)
   check_handle(self)
@@ -210,5 +219,58 @@ function Timer:get_due_in()
 end
 
 Loop.timer = handle_constructor("UV_TIMER", "uv_timer_t", Timer_mt, "uv_timer_init")
+
+-- Async
+
+local Async = api.clone(Handle)
+local Async_mt = {__index = Async}
+local async_cb = ffi.cast("uv_async_cb", handle_callback)
+
+function Async:send()
+  check_handle(self)
+  uv_assert(L.uv_async_send(self))
+end
+
+-- override
+function Async:close()
+  local data = handles_data[self]
+  if data then data.sflag:set(0) end -- mark invalid
+  Handle.close(self)
+end
+
+Loop.async = handle_constructor("UV_ASYNC", "uv_async_t", Async_mt,
+  function(loop, handle, callback)
+    local data = handles_data[handle]
+    data.callback = callback
+    data.sflag = ljuv.new_shared_flag(1)
+    uv_assert(L.uv_async_init(loop, handle, async_cb))
+  end
+)
+
+-- Export / Import for handles
+
+function thread.export_handle(o)
+  if ffi.istype("uv_async_t*", o) then
+    check_handle(o)
+    return {
+      type = "async",
+      ptr = ffi.cast("uintptr_t", ffi.cast("void*", o)),
+      sflag = ljuv.export(handles_data[o].sflag)
+    }
+  end
+end
+
+function thread.import_handle(payload)
+  if payload.type == "async" then
+    -- Return a function which checks the validity of the async handle before
+    -- using uv_async_send().
+    local sflag = ljuv.import(payload.sflag)
+    local async = ffi.cast("uv_async_t*", ffi.cast("void*", payload.ptr))
+    return function()
+      assert(sflag:get() == 1, "async handle is invalid/closed")
+      L.uv_async_send(async)
+    end
+  end
+end
 
 return ljuv

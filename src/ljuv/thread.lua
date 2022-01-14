@@ -132,9 +132,10 @@ ffi.metatype("ljuv_thread", Thread_mt)
 
 local EXPORT_KEY = "ljuv-export-a9c0f255c"
 
--- Export object to be passed to another thread.
--- The returned payload must be imported exactly once to prevent memory leak and invalid
--- memory accesses.
+-- Export an object to be passed to another thread.
+-- The returned payload must be imported exactly once to prevent memory leak
+-- and invalid memory accesses.
+-- An async handle is imported as a function which safely calls async:send().
 --
 -- o: object
 -- soft: truthy to no throw errors on invalid object (returns nothing)
@@ -143,29 +144,34 @@ function M.export(o, soft)
   local payload
   if ffi.istype("ljuv_shared_flag*", o) then
     wrapper.object_retain(ffi.cast("ljuv_object*", o))
-    payload = {"shared_flag", ffi.cast("uintptr_t", ffi.cast("void*", o))}
+    payload = {type = "shared_flag", ptr = ffi.cast("uintptr_t", ffi.cast("void*", o))}
   elseif ffi.istype("ljuv_channel*", o) then
     wrapper.object_retain(ffi.cast("ljuv_object*", o))
-    payload = {"channel", ffi.cast("uintptr_t", ffi.cast("void*", o))}
-  end
-  if payload then return {[EXPORT_KEY] = payload}
-  elseif not soft then error("no defined export for the given object") end
+    payload = {type = "channel", ptr = ffi.cast("uintptr_t", ffi.cast("void*", o))}
+  else payload = M.export_handle(o) end -- defined in ljuv.lua
+  -- return payload
+  if payload then return {[EXPORT_KEY] = payload} end
+  assert(soft, "no defined export for the given object")
 end
 
--- Import object payload.
+-- Import an object payload.
 -- soft: truthy to no throw errors on invalid payload (returns nothing)
 -- return imported object
 function M.import(payload, soft)
   if type(payload) == "table" and payload[EXPORT_KEY] then
     payload = payload[EXPORT_KEY]
-    if payload[1] == "shared_flag" then
-      local sflag = ffi.cast("ljuv_shared_flag*", ffi.cast("void*", payload[2]))
+    if payload.type == "shared_flag" then
+      local sflag = ffi.cast("ljuv_shared_flag*", ffi.cast("void*", payload.ptr))
       return ffi.gc(sflag, SharedFlag_gc)
-    elseif payload[1] == "channel" then
-      local channel = ffi.cast("ljuv_channel*", ffi.cast("void*", payload[2]))
+    elseif payload.type == "channel" then
+      local channel = ffi.cast("ljuv_channel*", ffi.cast("void*", payload.ptr))
       return ffi.gc(channel, Channel_gc)
-    elseif not soft then error("no defined import for the given payload") end
-  elseif not soft then error("invalid payload") end
+    else
+      local o = M.import_handle(payload) -- defined in ljuv.lua
+      if o then return o end
+    end
+  end
+  assert(soft, "no defined import for the given payload")
 end
 
 return M
