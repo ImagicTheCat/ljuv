@@ -80,11 +80,42 @@ table {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/styles/github.min.css">
 </head>
-<body class="article">
+<body class="article toc2 toc-left">
 <div id="header">
 <h1>ljuv Documentation</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_error_handling">Error handling</a>
+<ul class="sectlevel2">
+<li><a href="#_callbacks">Callbacks</a></li>
+</ul>
+</li>
+<li><a href="#_resources_management">Resources management</a>
+<ul class="sectlevel2">
+<li><a href="#_loop_and_handles">Loop and handles</a></li>
+<li><a href="#_shared_objects">Shared objects</a></li>
+</ul>
+</li>
+<li><a href="#_string_buffers">String buffers</a></li>
+<li><a href="#_api_reference">API Reference</a>
+<ul class="sectlevel2">
+<li><a href="#_ljuv_loop">ljuv.loop</a></li>
+<li><a href="#_ljuv_new_loop">ljuv.new_loop()</a></li>
+<li><a href="#_ljuv_assertcode">ljuv.assert(code)</a></li>
+<li><a href="#_ljuv_new_channel">ljuv.new_channel()</a></li>
+<li><a href="#_ljuv_new_shared_flagvalue">ljuv.new_shared_flag(value)</a></li>
+<li><a href="#_ljuv_exporto_soft">ljuv.export(o [, soft])</a></li>
+<li><a href="#_ljuv_importpayload_soft">ljuv.import(payload [, soft])</a></li>
+<li><a href="#_ljuv_new_threadfunc">ljuv.new_thread(func, &#8230;&#8203;)</a></li>
+</ul>
+</li>
+</ul>
+</div>
 </div>
 <div id="content">
+<div id="preamble">
+<div class="sectionbody">
 <div class="paragraph">
 <p><a href="https://github.com/ImagicTheCat/ljuv"><strong>ljuv</strong></a> is a Lua library built on <a href="https://libuv.org/">libuv</a> and <a href="https://luajit.org/">LuaJIT</a> 2.1 (HEAD).</p>
 </div>
@@ -95,9 +126,236 @@ table {
 <p>Not only a binding to <strong>libuv</strong>, the library aims to expose different levels of abstraction and address problems like multi-threading.</p>
 </div>
 </div>
+</div>
+<div class="sect1">
+<h2 id="_error_handling"><a class="anchor" href="#_error_handling"></a>Error handling</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_callbacks"><a class="anchor" href="#_callbacks"></a>Callbacks</h3>
+<div class="paragraph">
+<p>Errors from loop callbacks are properly handled; they will be deferred, queued and propagated by <code>loop:run()</code> as soon as possible (after a call to <code>loop:stop()</code>). After an error, the state of the loop is still valid and <code>loop:run()</code> can be called again to propagate the next error or to continue execution.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+In most cases catching errors from <code>loop:run()</code>, the root of the application, is not meaningful and it should probably be done at the callback level instead.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_resources_management"><a class="anchor" href="#_resources_management"></a>Resources management</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_loop_and_handles"><a class="anchor" href="#_loop_and_handles"></a>Loop and handles</h3>
+<div class="paragraph">
+<p>Handles are created and owned by a loop, they are not garbage collected on their own. To release an handle and its resources, <code>handle:close()</code> must be called. A loop will close its handles when garbage collected.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Due to the design of <strong>ljuv</strong>, if an handle callback is an anchor for the associated loop, e.g. it has a reference to it directly or indirectly by its upvalues, the loop will not be garbage collected until the VM is closed. For most applications it doesn&#8217;t matter because they will probably use the default global loop as their main event loop.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Although <strong>ljuv</strong> uses <strong>cdata</strong> objects, care is taken to preserve their identity in the API. When an handle is passed to a callback it will be the same <strong>cdata</strong> object returned by the loop. That <strong>cdata</strong> object identifies the handle and can be used as a key.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_shared_objects"><a class="anchor" href="#_shared_objects"></a>Shared objects</h3>
+<div class="paragraph">
+<p>Objects like <strong>channels</strong> or <strong>shared flags</strong> are properly managed from multiple threads by the use of reference counting (if correctly exported/imported).</p>
+</div>
+<div class="paragraph">
+<p>An <strong>async</strong> handle exported to another thread will act more as a weak reference: it will check the validity of the handle before attempting an operation.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_string_buffers"><a class="anchor" href="#_string_buffers"></a>String buffers</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><strong>ljuv</strong> uses LuaJIT&#8217;s string buffers to pass data between threads. Look at the LuaJIT documentation to know about what kind of data is supported.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_api_reference"><a class="anchor" href="#_api_reference"></a>API Reference</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_ljuv_loop"><a class="anchor" href="#_ljuv_loop"></a>ljuv.loop</h3>
+<div class="paragraph">
+<p>Default loop, lazily created.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ljuv_new_loop"><a class="anchor" href="#_ljuv_new_loop"></a>ljuv.new_loop()</h3>
+<div class="paragraph">
+<p>Create a loop.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ljuv_assertcode"><a class="anchor" href="#_ljuv_assertcode"></a>ljuv.assert(code)</h3>
+<div class="paragraph">
+<p>Assert a <strong>libuv</strong> error code.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ljuv_new_channel"><a class="anchor" href="#_ljuv_new_channel"></a>ljuv.new_channel()</h3>
+<div class="paragraph">
+<p>Create a channel.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ljuv_new_shared_flagvalue"><a class="anchor" href="#_ljuv_new_shared_flagvalue"></a>ljuv.new_shared_flag(value)</h3>
+<div class="paragraph">
+<p>Create a shared flag.</p>
+</div>
+<div class="sect3">
+<h4 id="_parameters"><a class="anchor" href="#_parameters"></a>Parameters</h4>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">value</dt>
+<dd>
+<p>integer (C <code>int</code>)</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_returns"><a class="anchor" href="#_returns"></a>Returns</h4>
+<div class="paragraph">
+<p>The created shared flag.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ljuv_exporto_soft"><a class="anchor" href="#_ljuv_exporto_soft"></a>ljuv.export(o [, soft])</h3>
+<div class="paragraph">
+<p>Export an object to be passed to another thread.</p>
+</div>
+<div class="dlist">
+<div class="title">Exportables</div>
+<dl>
+<dt class="hdlist1">channel</dt>
+<dt class="hdlist1">shared flag</dt>
+<dt class="hdlist1">async handle</dt>
+<dd>
+<p>imported as a function which safely calls <code>async:send()</code></p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+The returned payload must be imported exactly once to prevent memory leak and invalid memory accesses.
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_parameters_2"><a class="anchor" href="#_parameters_2"></a>Parameters</h4>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">o</dt>
+<dd>
+<p>object to export</p>
+</dd>
+<dt class="hdlist1">soft</dt>
+<dd>
+<p>truthy to not throw errors on invalid object (returns nothing)</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_returns_2"><a class="anchor" href="#_returns_2"></a>Returns</h4>
+<div class="paragraph">
+<p>A payload encodable by String Buffers.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ljuv_importpayload_soft"><a class="anchor" href="#_ljuv_importpayload_soft"></a>ljuv.import(payload [, soft])</h3>
+<div class="paragraph">
+<p>Import an object payload.</p>
+</div>
+<div class="sect3">
+<h4 id="_parameters_3"><a class="anchor" href="#_parameters_3"></a>Parameters</h4>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">payload</dt>
+<dt class="hdlist1">soft</dt>
+<dd>
+<p>truthy to not throw errors on invalid payload (returns nothing)</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_returns_3"><a class="anchor" href="#_returns_3"></a>Returns</h4>
+<div class="paragraph">
+<p>Imported object.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ljuv_new_threadfunc"><a class="anchor" href="#_ljuv_new_threadfunc"></a>ljuv.new_thread(func, &#8230;&#8203;)</h3>
+<div class="paragraph">
+<p>Create a thread.</p>
+</div>
+<div class="paragraph">
+<p>It will try to export each argument first which allows, for example, to pass a channel without manual calls to export/import.</p>
+</div>
+<div class="paragraph">
+<p>Nothing will be done about the function&#8217;s upvalues as it would be semantically incorrect to transfer them (a Lua upvalue is a reference to an outer local, not just a value).</p>
+</div>
+<div class="sect3">
+<h4 id="_parameters_4"><a class="anchor" href="#_parameters_4"></a>Parameters</h4>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">func</dt>
+<dd>
+<p>thread entry function, a Lua function or a string of Lua code/bytecode</p>
+</dd>
+<dt class="hdlist1">&#8230;&#8203;</dt>
+<dd>
+<p>arguments passed to the function, must be encodable by string buffers</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_returns_4"><a class="anchor" href="#_returns_4"></a>Returns</h4>
+<div class="paragraph">
+<p>The created thread.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-01-16 03:03:40 +0100
+Last updated 2022-01-16 20:44:21 +0100
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
