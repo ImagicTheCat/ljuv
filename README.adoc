@@ -6,8 +6,6 @@ ifdef::env-github[]
 :caution-caption: :fire:
 :warning-caption: :warning:
 endif::[]
-:toc: left
-:toclevels: 5
 
 *ljuv* is a Lua library built on https://libuv.org/[libuv] and https://luajit.org/[LuaJIT] 2.1 (HEAD).
 
@@ -18,3 +16,12 @@ Not only a binding to *libuv*, the library aims to expose different levels of ab
 == Install
 
 See link:src[], link:rockspecs[] or https://luarocks.org/modules/imagicthecat-0a6b669a3a/ljuv[luarocks].
+
+== Documentation
+
+Online: https://imagicthecat.github.io/ljuv
+
+Offline:
+
+- `git worktree add gh-pages gh-pages`
+- open the `gh-pages` directory from a browser
