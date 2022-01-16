@@ -1,5 +1,5 @@
 package = "ljuv"
-version = "scm-1"
+version = "scm-2"
 source = {
   url = "git://github.com/ImagicTheCat/ljuv",
 }
@@ -28,6 +28,8 @@ build = {
     ["ljuv.wrapper_c"] = {
       sources = {"src/wrapper.c"},
       libraries = {"uv"}
-    }
+    },
+    ["ljuv.api"] = "src/ljuv/api.lua",
+    ["ljuv.thread"] = "src/ljuv/thread.lua"
   }
 }
