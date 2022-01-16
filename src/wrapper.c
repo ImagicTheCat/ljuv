@@ -240,19 +240,21 @@ void thread_run(void *arg)
 {
   ljuv_thread *thread = arg;
   lua_State *L = thread->L;
+  // init and execute
   luaL_openlibs(L);
   luaL_loadbuffer(L, thread_lua, strlen(thread_lua), "=[ljuv thread]");
   lua_call(L, 0, 0);
-  // handle return data
+  // process returned data
   lua_getglobal(thread->L, "ljuv_data");
   const char* data_ptr = lua_tolstring(thread->L, -1, &thread->data_size);
   if(data_ptr && thread->data_size > 0){
+    // copy
     thread->data = malloc(thread->data_size);
     if(thread->data) memcpy(thread->data, data_ptr, thread->data_size);
   }
   else
     thread->data = NULL;
-  // end
+  // end thread state
   lua_close(thread->L);
   uv_mutex_lock(&thread->mutex);
   thread->running = false;

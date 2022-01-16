@@ -82,6 +82,7 @@ function ljuv.new_loop()
   return loop
 end
 
+-- mode: (optional) "default", "once", "nowait"
 function Loop:run(mode)
   ccheck(self)
   mode = mode or "default"
@@ -148,7 +149,7 @@ local function handle_constructor(enum_type, handle_type, metatable, init_func)
   local ptype = ffi.typeof(handle_type.."*")
   -- set init function
   local init
-  if type(init_func) == "string" then -- basic passtrough
+  if type(init_func) == "string" then -- basic passthrough
     init = function(...) uv_assert(L[init_func](...)) end
   else init = init_func end -- custom init function
   -- generate constructor
@@ -163,7 +164,7 @@ local function handle_constructor(enum_type, handle_type, metatable, init_func)
 end
 
 -- Loop callback handling.
--- Defers error propagation to loop:run() using loop:stop().
+-- Defers error propagation to loop:run() by using loop:stop().
 local last_traceback
 local function callback_error_handler(err)
   last_traceback = debug.traceback(err, 2)

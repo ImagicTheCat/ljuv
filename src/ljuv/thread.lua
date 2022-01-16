@@ -3,7 +3,6 @@
 
 local ffi = require("ffi")
 local buffer = require("string.buffer")
-local api = require("ljuv.api")
 local wrapper = require("ljuv.wrapper")
 
 local function pack(...) return {n = select("#", ...), ...} end
@@ -13,6 +12,7 @@ local decode_buf = buffer.new()
 local M = {}
 
 -- Shared flag
+-- Set/get a value between threads.
 
 local SharedFlag = {}
 local SharedFlag_mt = {__index = SharedFlag}
@@ -20,11 +20,13 @@ local SharedFlag_mt = {__index = SharedFlag}
 local function SharedFlag_gc(self)
   wrapper.object_release(ffi.cast("ljuv_object*", self))
 end
+-- flag: integer (C int)
 function M.new_shared_flag(flag)
   local shared_flag = wrapper.shared_flag_create(flag)
   assert(shared_flag ~= nil, "failed to create shared flag")
   return ffi.gc(shared_flag, SharedFlag_gc)
 end
+-- flag: integer (C int)
 function SharedFlag:set(flag) ccheck(self); wrapper.shared_flag_set(self, flag) end
 function SharedFlag:get() ccheck(self); return wrapper.shared_flag_get(self) end
 
@@ -45,28 +47,42 @@ function M.new_channel()
   return ffi.gc(channel, Channel_gc)
 end
 
+-- Push a message.
+-- ...: payload arguments
 function Channel:push(...)
   ccheck(self)
+  -- init buffer
   local buf = channels_data[self]
   if not buf then buf = buffer.new(); channels_data[self] = buf end
+  -- encode
   buf:reset()
   buf:encode(pack(...))
+  -- push
   assert(wrapper.channel_push(self, buf:ref()), "failed to allocate channel data")
 end
 
+-- Pull a message (blocking).
+-- return payload arguments
 function Channel:pull()
   ccheck(self)
+  -- pull
   local size = ffi.new("size_t[1]")
   local ptr = wrapper.channel_pull(self, size)
+  -- decode
   decode_buf:set(ptr, size[0])
   local data = decode_buf:decode()
   wrapper.free(ptr)
   return unpack(data, 1, data.n)
 end
+
+-- Pull a message (non-blocking).
+-- return false or (true, payload arguments...)
 function Channel:try_pull()
   ccheck(self)
+  -- pull
   local size = ffi.new("size_t[1]")
   local ptr = wrapper.channel_try_pull(self, size)
+  -- decode
   if ptr ~= nil then
     decode_buf:set(ptr, size[0])
     local data = decode_buf:decode()
@@ -76,6 +92,7 @@ function Channel:try_pull()
   return false
 end
 
+-- Count the number of pending messages.
 function Channel:count() ccheck(self); return tonumber(wrapper.channel_count(self)) end
 
 ffi.metatype("ljuv_channel", Channel_mt)
@@ -113,13 +130,17 @@ function Thread:running()
   if not threads_data[self] then return false end
   return wrapper.thread_running(self)
 end
+-- Join thread.
+-- return (false, errtrace) on thread error or (true, return values...)
 function Thread:join()
+  -- join
   local size = ffi.new("size_t[1]")
   local data = ffi.new("char*[1]")
   assert(threads_data[self], "thread already joined")
   assert(wrapper.thread_join(self, data, size), "failed to join thread")
   threads_data[self] = nil -- mark joined/released
   assert(data[0] ~= nil, "missing thread join data")
+  -- decode
   local str = ffi.string(data[0], size[0])
   wrapper.free(data[0])
   local ldata = buffer.decode(str)
@@ -136,6 +157,11 @@ local EXPORT_KEY = "ljuv-export-a9c0f255c"
 -- The returned payload must be imported exactly once to prevent memory leak
 -- and invalid memory accesses.
 -- An async handle is imported as a function which safely calls async:send().
+--
+-- Exportables:
+-- - channel
+-- - shared flag
+-- - async handle
 --
 -- o: object
 -- soft: truthy to no throw errors on invalid object (returns nothing)
