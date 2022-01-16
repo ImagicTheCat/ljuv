@@ -247,6 +247,29 @@ Loop.async = handle_constructor("UV_ASYNC", "uv_async_t", Async_mt,
   end
 )
 
+-- Signal
+
+local Signal = api.clone(Handle)
+local Signal_mt = {__index = Signal}
+local signal_cb = ffi.cast("uv_signal_cb", handle_callback)
+
+function Signal:start(signum, callback)
+  check_handle(self)
+  handles_data[self].callback = callback
+  uv_assert(L.uv_signal_start(self, signal_cb, signum))
+end
+function Signal:start_oneshot(signum, callback)
+  check_handle(self)
+  handles_data[self].callback = callback
+  uv_assert(L.uv_signal_start_oneshot(self, signal_cb, signum))
+end
+function Signal:stop()
+  check_handle(self)
+  uv_assert(L.uv_signal_stop(self))
+end
+
+Loop.signal = handle_constructor("UV_SIGNAL", "uv_signal_t", Signal_mt, "uv_signal_init")
+
 -- Export / Import for handles
 
 function thread.export_handle(o)
