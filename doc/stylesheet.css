@@ -13,7 +13,7 @@
 --secondarycolor:#ba3925;
 --tertiarycolor: #186d7a;
 --sidebarbackground:#004d40; /* Teal 900 */
---linkcolor:#80cbc4; /* Teal 200 */
+--linkcolor:#00aa9b;
 --linkcoloralternate:#f44336;
 --white:#FFFFFF;
 --black:#000000;
@@ -27,7 +27,9 @@ h1,h2,h3{background-color:var(--primarycolor);color:var(--white) !important;font
 h4,h5,h6{color:var(--primarycolor);}
 .title{color:var(--sidebarbackground) !important;font-family:"Noto Sans",sans-serif;font-style: normal; font-weight: normal;}
 p{font-family: "Noto Sans",sans-serif ! important}
-#toc.toc2 a:link{color:white;}
+
+#toc a:hover{ color:white; }
+#toc a{ color: #80cbc4; /* Teal 200 */ }
 
 a {
   text-decoration: none;
