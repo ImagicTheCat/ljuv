@@ -15,9 +15,9 @@ NOTE: When the documentation is very succinct because it is just a layer above t
 
 === Callbacks
 
-Errors from loop callbacks are properly handled; they will be deferred, queued and propagated by <<loop-run>> as soon as possible (after a call to <<loop-stop>>). After an error, the state of the loop is still valid and <<loop-run>> can be called again to propagate the next error or to continue execution.
+Errors from loop callbacks are properly handled; they will be deferred, queued and propagated by <<loop-run>> as soon as possible (with a call to <<loop-stop>>). After an error, the state of the loop is still valid and <<loop-run>> can be called again to propagate the next error or to continue execution.
 
-NOTE: In most cases catching errors from <<loop-run>>, the root of the application, is not meaningful and it should probably be done at the callback level instead.
+NOTE: In most cases catching errors from <<loop-run>>, the root of the application, is not meaningful and should probably be done at the callback level instead.
 
 == Resources management
 
@@ -25,15 +25,15 @@ NOTE: In most cases catching errors from <<loop-run>>, the root of the applicati
 
 Handles are created and owned by a loop, they are not garbage collected on their own. To release an handle and its resources, <<handle-close>> must be called. A loop will close its handles when garbage collected.
 
-WARNING: Due to the design of *ljuv*, if an handle callback is an anchor for the associated loop, e.g. it has a reference to it directly or indirectly by its upvalues, the loop will not be garbage collected until the VM is closed. For most applications it doesn't matter because they will probably use the default global loop as their main event loop.
+WARNING: Due to the design of *ljuv*, if an handle callback is an anchor for the associated loop, e.g. it has a reference to it directly or indirectly by its upvalues, the loop will not be garbage collected until the VM is closed. For most applications it doesn't matter because they will use the default global loop as their main event loop.
 
-Although *ljuv* uses *cdata* objects, care is taken to preserve their identity in the API. When an handle is passed to a callback it will be the same *cdata* object returned by the loop. That *cdata* object identifies the handle and can be used as a key.
+Although *ljuv* uses *cdata* objects, care is taken to preserve their identity in the API. When an handle is passed to a callback it will be the same *cdata* object created by the loop. That *cdata* object identifies the handle and can be used as a key.
 
 === Shared objects
 
 Objects like *channels* or *shared flags* are properly managed from multiple threads by the use of reference counting (if correctly exported/imported).
 
-An *async* handle exported to another thread will act more as a weak reference: it will check the validity of the handle before attempting an operation.
+An *async* handle exported to another thread will act more as a weak reference: the validity of the handle is checked before attempting an operation.
 
 == String buffers
 

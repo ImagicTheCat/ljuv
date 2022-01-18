@@ -63,6 +63,6 @@ Check if the thread is still running. Returns a boolean.
 
 Join the thread (blocking).
 
-It will releases the thread resources.
+Also releases the thread resources.
 
 Returns a boolean status, *true* followed by the thread function return values on successful completion, or *false* followed by an error traceback on failure.
