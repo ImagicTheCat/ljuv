@@ -164,7 +164,7 @@ local EXPORT_KEY = "ljuv-export-a9c0f255c"
 -- - async handle
 --
 -- o: object
--- soft: truthy to no throw errors on invalid object (returns nothing)
+-- soft: truthy to not throw errors on invalid object (returns nothing)
 -- return a payload encodable by string buffers
 function M.export(o, soft)
   local payload
@@ -181,7 +181,7 @@ function M.export(o, soft)
 end
 
 -- Import an object payload.
--- soft: truthy to no throw errors on invalid payload (returns nothing)
+-- soft: truthy to not throw errors on invalid payload (returns nothing)
 -- return imported object
 function M.import(payload, soft)
   if type(payload) == "table" and payload[EXPORT_KEY] then

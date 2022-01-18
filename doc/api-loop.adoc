@@ -1,0 +1,108 @@
+= ljuv.new_loop()
+
+Create a loop.
+
+[#loop-run]
+= loop:run([mode])
+
+mode:: string: `default`, `once` or `nowait`
+
+= loop:alive()
+
+Returns a boolean.
+
+[#loop-stop]
+= loop:stop()
+
+Stop the loop.
+
+= loop:now()
+
+Get the current loop time (in seconds).
+
+= loop:update_time()
+
+Update the current loop time.
+
+= handle:is_active()
+
+Returns a boolean.
+
+= handle:is_closing()
+
+Returns a boolean.
+
+= handle:get_loop()
+
+Get the associated loop. Will return `nil` if the loop is already released.
+
+= handle:get_type()
+
+Get the handle type.
+
+Returns a string defined by `uv_handle_type_name`.
+
+[#handle-close]
+= handle:close()
+
+Close the handle. Idempotent.
+
+Subsequent use of the handle will throw an error.
+
+= loop:timer()
+
+Create a timer handle.
+
+= timer:start(timeout, repeat_period, callback)
+
+Start the timer.
+
+timeout:: first timeout in seconds
+repeat_period:: repeat period in seconds, `0` to disable
+callback:: `(timer)`
+
+= timer:stop()
+
+Stop the timer.
+
+= timer:set_repeat(period)
+
+period:: repeat period in seconds, `0` to disable
+
+= timer:get_repeat()
+
+Get the repeat period (in seconds).
+
+= timer:get_due_in()
+
+Get the timer due value (in seconds, `0` if expired).
+
+= loop:async(callback)
+
+Create an async handle.
+
+callback:: `(async)`
+
+[#async-send]
+= async:send()
+
+Wake up the event loop and call the async handle’s callback.
+
+= loop:signal()
+
+Create a signal handle.
+
+= signal:start(signum, callback)
+
+Start watching for the given signal.
+
+signum:: signal number
+callback:: `(signal)`
+
+= signal:start_oneshot(signum, callback)
+
+Same as `start()`, but the signal handler is reset the moment the signal is received.
+
+= signal:stop()
+
+Stop watching for signals.

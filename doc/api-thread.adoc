@@ -1,0 +1,68 @@
+
+= ljuv.new_shared_flag(value)
+
+Create a shared flag.
+
+value:: integer (C `int`)
+
+= shared_flag:set(value)
+
+Set the shared flag's value.
+
+value:: integer (C `int`)
+
+= shared_flag:get()
+
+Returns the shared flag's value.
+
+= ljuv.new_channel()
+
+Create a channel.
+
+= channel:push(...)
+
+Push a message.
+
+...:: payload arguments
+
+= channel:pull()
+
+Pull a message (blocking).
+
+Returns payload arguments.
+
+= channel:try_pull()
+
+Pull a message (non-blocking).
+
+Returns a boolean status, *true* followed by the payload arguments if a message has been pulled, or *false* otherwise.
+
+= channel:count()
+
+Count the number of pending messages.
+
+= ljuv.new_thread(func, ...)
+
+Create a thread.
+
+It will try to export each argument first which allows, for example, to pass a channel without manual calls to export/import.
+
+Nothing will be done about the function's upvalues as it would be semantically incorrect to transfer them (a Lua upvalue is a reference to an outer local, not just a value).
+
+The function's return values, encoded by String Buffers, will be returned by <<thread-join>> on successful completion.
+
+func:: thread entry function, a Lua function or a string of Lua code/bytecode
+...:: arguments passed to the function, must be encodable by String Buffers
+
+= thread:running()
+
+Check if the thread is still running. Returns a boolean.
+
+[#thread-join]
+= thread:join()
+
+Join the thread (blocking).
+
+It will releases the thread resources.
+
+Returns a boolean status, *true* followed by the thread function return values on successful completion, or *false* followed by an error traceback on failure.
