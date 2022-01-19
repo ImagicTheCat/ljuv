@@ -7,6 +7,8 @@ Create a loop.
 
 mode:: string: `default`, `once` or `nowait`
 
+Returns a boolean status, *true* if there is work left in the loop and the function should be called again, *false* otherwise.
+
 = loop:alive()
 
 Returns a boolean.
@@ -43,7 +45,7 @@ Returns a string defined by `uv_handle_type_name`.
 
 Close the handle. Idempotent.
 
-Subsequent uses of the handle will throw errors.
+Subsequent use of the handle will throw an error.
 
 = loop:timer()
 
