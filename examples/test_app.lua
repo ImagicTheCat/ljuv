@@ -5,9 +5,16 @@ local ljuv = require("ljuv")
 
 local channel_in, channel_out = ljuv.new_channel(), ljuv.new_channel()
 local tasks = {}
+
+-- Process work results.
 local async = ljuv.loop:async(function()
-  local co = table.remove(tasks, 1)
-  assert(coroutine.resume(co, channel_out:pull()))
+  repeat
+    local ok, r = channel_out:try_pull()
+    if ok then
+      local co = table.remove(tasks, 1)
+      assert(coroutine.resume(co, r))
+    end
+  until not ok
 end)
 
 -- Worker thread.
@@ -32,6 +39,7 @@ local function async_fib(n)
   return coroutine.yield()
 end
 
+-- Do some work.
 coroutine.resume(coroutine.create(function()
   assert(async_fib(9) == 34)
   assert(async_fib(20) == 6765)
@@ -40,5 +48,4 @@ coroutine.resume(coroutine.create(function()
 end))
 
 ljuv.loop:run()
-
 assert(thread:join())
