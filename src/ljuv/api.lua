@@ -32,4 +32,11 @@ function M.clone(t)
   local nt = {}; for k,v in pairs(t) do nt[k] = v end; return nt
 end
 
+-- Define handle struct "<ptr_type>_h" with handle pointer.
+-- return ctype
+function M.defineHandle(ptr_type)
+  ffi.cdef("typedef struct ${ $ *handle; } $;", ptr_type.."_h", ffi.typeof(ptr_type), ptr_type.."h")
+  return ffi.typeof(ptr_type.."h")
+end
+
 return M

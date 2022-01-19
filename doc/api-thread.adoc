@@ -1,9 +1,10 @@
 
-= ljuv.new_shared_flag(value)
+= ljuv.new_shared_flag(value [, final_value])
 
 Create a shared flag.
 
 value:: integer (C `int`)
+final_value:: same as _value_, but set at finalization
 
 = shared_flag:set(value)
 

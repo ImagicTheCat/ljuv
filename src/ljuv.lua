@@ -32,7 +32,9 @@ local L = require("ljuv.libuv")
 local C = ffi.C
 local uv_assert, refkey = api.assert, api.refkey
 
-local function ccheck(self) assert(self, "invalid cdata self") end
+local function ccheck(self)
+  assert(self.handle ~= nil, "cdata self is invalid or finalized")
+end
 
 -- Lazy main loop creation.
 local ljuv_mt = {__index = function(self, k)
@@ -55,6 +57,7 @@ local Loop = {}
 local Loop_mt = {__index = Loop}
 local loops_refmap = setmetatable({}, {__mode = "v"})
 local loops_data = setmetatable({}, {__mode = "k"})
+local loop_t = api.defineHandle("uv_loop_t")
 local handles_refmap = {}
 local handles_data = {}
 
@@ -65,19 +68,20 @@ end)
 
 local function Loop_gc(self)
   -- Close all handles and free uv loop.
-  L.uv_walk(self, loop_walk_cb, nil)
-  uv_assert(L.uv_run(self, L.UV_RUN_DEFAULT))
-  uv_assert(L.uv_loop_close(self))
-  C.free(self)
+  L.uv_walk(self.handle, loop_walk_cb, nil)
+  uv_assert(L.uv_run(self.handle, L.UV_RUN_DEFAULT))
+  uv_assert(L.uv_loop_close(self.handle))
+  C.free(self.handle)
+  self.handle = nil
 end
 
 function ljuv.new_loop()
-  local loop = ffi.cast("uv_loop_t*", C.malloc(L.uv_loop_size()))
-  assert(loop ~= nil, "allocation failed")
+  local loop = loop_t(ffi.cast("uv_loop_t*", C.malloc(L.uv_loop_size())))
+  assert(loop.handle ~= nil, "allocation failed")
   ffi.gc(loop, Loop_gc)
   -- init
-  uv_assert(L.uv_loop_init(loop))
-  loops_refmap[refkey(loop)] = loop
+  uv_assert(L.uv_loop_init(loop.handle))
+  loops_refmap[refkey(loop.handle)] = loop
   loops_data[loop] = {errors = {}}
   return loop
 end
@@ -94,7 +98,7 @@ function Loop:run(mode)
   -- propagate deferred errors (before iteration)
   if #data.errors > 0 then error(table.remove(data.errors, 1), 0) end
   -- run
-  local status = L.uv_run(self, mode)
+  local status = L.uv_run(self.handle, mode)
   uv_assert(status)
   -- propagate deferred errors (after iteration)
   if #data.errors > 0 then error(table.remove(data.errors, 1), 0) end
@@ -102,12 +106,12 @@ function Loop:run(mode)
 end
 jit.off(Loop.run)
 
-function Loop:alive() ccheck(self); return L.uv_loop_alive(self) > 0 end
-function Loop:stop() ccheck(self); L.uv_stop(self) end
-function Loop:now() ccheck(self); return tonumber(L.uv_now(self))*1e-3 end
-function Loop:update_time() ccheck(self); L.uv_update_time(self) end
+function Loop:alive() ccheck(self); return L.uv_loop_alive(self.handle) > 0 end
+function Loop:stop() ccheck(self); L.uv_stop(self.handle) end
+function Loop:now() ccheck(self); return tonumber(L.uv_now(self.handle))*1e-3 end
+function Loop:update_time() ccheck(self); L.uv_update_time(self.handle) end
 
-ffi.metatype("uv_loop_t", Loop_mt)
+ffi.metatype(loop_t, Loop_mt)
 
 -- Handle
 
@@ -158,7 +162,7 @@ local function handle_constructor(enum_type, handle_type, metatable, init_func)
     assert(handle ~= nil, "allocation failed")
     handles_refmap[refkey(handle)] = handle
     handles_data[handle] = {}
-    init(loop, handle, ...)
+    init(loop.handle, handle, ...)
     return handle
   end
 end
@@ -235,16 +239,16 @@ end
 -- override
 function Async:close()
   local data = handles_data[self]
-  if data then data.sflag:set(0) end -- mark invalid
+  if data and data.sflag.handle ~= nil then data.sflag:set(0) end -- mark released
   Handle.close(self)
 end
 
 Loop.async = handle_constructor("UV_ASYNC", "uv_async_t", Async_mt,
-  function(loop, handle, callback)
+  function(loop_handle, handle, callback)
     local data = handles_data[handle]
     data.callback = callback
-    data.sflag = ljuv.new_shared_flag(1)
-    uv_assert(L.uv_async_init(loop, handle, async_cb))
+    data.sflag = ljuv.new_shared_flag(1, 0)
+    uv_assert(L.uv_async_init(loop_handle, handle, async_cb))
   end
 )
 
