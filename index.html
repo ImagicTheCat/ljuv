@@ -22,7 +22,7 @@
 --secondarycolor:#ba3925;
 --tertiarycolor: #186d7a;
 --sidebarbackground:#004d40; /* Teal 900 */
---linkcolor:#80cbc4; /* Teal 200 */
+--linkcolor:#00aa9b;
 --linkcoloralternate:#f44336;
 --white:#FFFFFF;
 --black:#000000;
@@ -36,7 +36,9 @@ h1,h2,h3{background-color:var(--primarycolor);color:var(--white) !important;font
 h4,h5,h6{color:var(--primarycolor);}
 .title{color:var(--sidebarbackground) !important;font-family:"Noto Sans",sans-serif;font-style: normal; font-weight: normal;}
 p{font-family: "Noto Sans",sans-serif ! important}
-#toc.toc2 a:link{color:white;}
+
+#toc a:hover{ color:white; }
+#toc a{ color: #80cbc4; /* Teal 200 */ }
 
 a {
   text-decoration: none;
@@ -101,13 +103,43 @@ table {
 <li><a href="#_api_reference">API Reference</a>
 <ul class="sectlevel2">
 <li><a href="#_ljuv_loop">ljuv.loop</a></li>
-<li><a href="#_ljuv_new_loop">ljuv.new_loop()</a></li>
 <li><a href="#_ljuv_assertcode">ljuv.assert(code)</a></li>
-<li><a href="#_ljuv_new_channel">ljuv.new_channel()</a></li>
-<li><a href="#_ljuv_new_shared_flagvalue">ljuv.new_shared_flag(value)</a></li>
 <li><a href="#_ljuv_exporto_soft">ljuv.export(o [, soft])</a></li>
 <li><a href="#_ljuv_importpayload_soft">ljuv.import(payload [, soft])</a></li>
+<li><a href="#_ljuv_new_shared_flagvalue_final_value">ljuv.new_shared_flag(value [, final_value])</a></li>
+<li><a href="#_shared_flagsetvalue">shared_flag:set(value)</a></li>
+<li><a href="#_shared_flagget">shared_flag:get()</a></li>
+<li><a href="#_ljuv_new_channel">ljuv.new_channel()</a></li>
+<li><a href="#_channelpush">channel:push(&#8230;&#8203;)</a></li>
+<li><a href="#_channelpull">channel:pull()</a></li>
+<li><a href="#_channeltry_pull">channel:try_pull()</a></li>
+<li><a href="#_channelcount">channel:count()</a></li>
 <li><a href="#_ljuv_new_threadfunc">ljuv.new_thread(func, &#8230;&#8203;)</a></li>
+<li><a href="#_threadrunning">thread:running()</a></li>
+<li><a href="#thread-join">thread:join()</a></li>
+<li><a href="#_ljuv_new_loop">ljuv.new_loop()</a></li>
+<li><a href="#loop-run">loop:run([mode])</a></li>
+<li><a href="#_loopalive">loop:alive()</a></li>
+<li><a href="#loop-stop">loop:stop()</a></li>
+<li><a href="#_loopnow">loop:now()</a></li>
+<li><a href="#_loopupdate_time">loop:update_time()</a></li>
+<li><a href="#_handleis_active">handle:is_active()</a></li>
+<li><a href="#_handleget_loop">handle:get_loop()</a></li>
+<li><a href="#_handleget_type">handle:get_type()</a></li>
+<li><a href="#handle-close">handle:close()</a></li>
+<li><a href="#_looptimer">loop:timer()</a></li>
+<li><a href="#_timerstarttimeout_repeat_period_callback">timer:start(timeout, repeat_period, callback)</a></li>
+<li><a href="#_timerstop">timer:stop()</a></li>
+<li><a href="#_timeragain">timer:again()</a></li>
+<li><a href="#_timerset_repeatperiod">timer:set_repeat(period)</a></li>
+<li><a href="#_timerget_repeat">timer:get_repeat()</a></li>
+<li><a href="#_timerget_due_in">timer:get_due_in()</a></li>
+<li><a href="#_loopasynccallback">loop:async(callback)</a></li>
+<li><a href="#async-send">async:send()</a></li>
+<li><a href="#_loopsignal">loop:signal()</a></li>
+<li><a href="#_signalstartsignum_callback">signal:start(signum, callback)</a></li>
+<li><a href="#_signalstart_oneshotsignum_callback">signal:start_oneshot(signum, callback)</a></li>
+<li><a href="#_signalstop">signal:stop()</a></li>
 </ul>
 </li>
 </ul>
@@ -125,6 +157,18 @@ table {
 <div class="paragraph">
 <p>Not only a binding to <strong>libuv</strong>, the library aims to expose different levels of abstraction and address problems like multi-threading.</p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+When the documentation is very succinct because it is just a layer above the <strong>libuv</strong> API, refer to the <strong>libuv</strong> documentation.
+</td>
+</tr>
+</table>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -133,7 +177,7 @@ table {
 <div class="sect2">
 <h3 id="_callbacks"><a class="anchor" href="#_callbacks"></a>Callbacks</h3>
 <div class="paragraph">
-<p>Errors from loop callbacks are properly handled; they will be deferred, queued and propagated by <code>loop:run()</code> as soon as possible (after a call to <code>loop:stop()</code>). After an error, the state of the loop is still valid and <code>loop:run()</code> can be called again to propagate the next error or to continue execution.</p>
+<p>Errors from loop callbacks are properly handled; they will be deferred, queued and propagated by <a href="#loop-run">loop:run([mode])</a> as soon as possible (with a call to <a href="#loop-stop">loop:stop()</a>). After an error, the state of the loop is still valid and <a href="#loop-run">loop:run([mode])</a> can be called again to propagate the next error or to continue execution.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -142,7 +186,7 @@ table {
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-In most cases catching errors from <code>loop:run()</code>, the root of the application, is not meaningful and it should probably be done at the callback level instead.
+In most cases catching errors from <a href="#loop-run">loop:run([mode])</a>, the root of the application, is not meaningful and should probably be done at the callback level instead.
 </td>
 </tr>
 </table>
@@ -156,7 +200,7 @@ In most cases catching errors from <code>loop:run()</code>, the root of the appl
 <div class="sect2">
 <h3 id="_loop_and_handles"><a class="anchor" href="#_loop_and_handles"></a>Loop and handles</h3>
 <div class="paragraph">
-<p>Handles are created and owned by a loop, they are not garbage collected on their own. To release an handle and its resources, <code>handle:close()</code> must be called. A loop will close its handles when garbage collected.</p>
+<p>Handles are created and owned by a loop, they are not garbage collected on their own. To release an handle and its resources, <a href="#handle-close">handle:close()</a> must be called. A loop will close its handles when garbage collected.</p>
 </div>
 <div class="admonitionblock warning">
 <table>
@@ -165,13 +209,13 @@ In most cases catching errors from <code>loop:run()</code>, the root of the appl
 <i class="fa icon-warning" title="Warning"></i>
 </td>
 <td class="content">
-Due to the design of <strong>ljuv</strong>, if an handle callback is an anchor for the associated loop, e.g. it has a reference to it directly or indirectly by its upvalues, the loop will not be garbage collected until the VM is closed. For most applications it doesn&#8217;t matter because they will probably use the default global loop as their main event loop.
+Due to the design of <strong>ljuv</strong>, if an handle callback is an anchor for the associated loop, e.g. it has a reference to it directly or indirectly by its upvalues, the loop will not be garbage collected until the VM is closed. For most applications it doesn&#8217;t matter because they will use the default global loop as their main event loop.
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>Although <strong>ljuv</strong> uses <strong>cdata</strong> objects, care is taken to preserve their identity in the API. When an handle is passed to a callback it will be the same <strong>cdata</strong> object returned by the loop. That <strong>cdata</strong> object identifies the handle and can be used as a key.</p>
+<p>Although <strong>ljuv</strong> uses <strong>cdata</strong> objects, care is taken to preserve their identity in the API. When an handle is passed to a callback it will be the same <strong>cdata</strong> object created by the loop. That <strong>cdata</strong> object identifies the handle and can be used as a key.</p>
 </div>
 </div>
 <div class="sect2">
@@ -180,7 +224,7 @@ Due to the design of <strong>ljuv</strong>, if an handle callback is an anchor f
 <p>Objects like <strong>channels</strong> or <strong>shared flags</strong> are properly managed from multiple threads by the use of reference counting (if correctly exported/imported).</p>
 </div>
 <div class="paragraph">
-<p>An <strong>async</strong> handle exported to another thread will act more as a weak reference: it will check the validity of the handle before attempting an operation.</p>
+<p>An <strong>async</strong> handle exported to another thread will act more as a weak reference: the validity of the handle is checked before attempting an operation.</p>
 </div>
 </div>
 </div>
@@ -203,44 +247,9 @@ Due to the design of <strong>ljuv</strong>, if an handle callback is an anchor f
 </div>
 </div>
 <div class="sect2">
-<h3 id="_ljuv_new_loop"><a class="anchor" href="#_ljuv_new_loop"></a>ljuv.new_loop()</h3>
-<div class="paragraph">
-<p>Create a loop.</p>
-</div>
-</div>
-<div class="sect2">
 <h3 id="_ljuv_assertcode"><a class="anchor" href="#_ljuv_assertcode"></a>ljuv.assert(code)</h3>
 <div class="paragraph">
 <p>Assert a <strong>libuv</strong> error code.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_ljuv_new_channel"><a class="anchor" href="#_ljuv_new_channel"></a>ljuv.new_channel()</h3>
-<div class="paragraph">
-<p>Create a channel.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_ljuv_new_shared_flagvalue"><a class="anchor" href="#_ljuv_new_shared_flagvalue"></a>ljuv.new_shared_flag(value)</h3>
-<div class="paragraph">
-<p>Create a shared flag.</p>
-</div>
-<div class="sect3">
-<h4 id="_parameters"><a class="anchor" href="#_parameters"></a>Parameters</h4>
-<div class="dlist">
-<dl>
-<dt class="hdlist1">value</dt>
-<dd>
-<p>integer (C <code>int</code>)</p>
-</dd>
-</dl>
-</div>
-</div>
-<div class="sect3">
-<h4 id="_returns"><a class="anchor" href="#_returns"></a>Returns</h4>
-<div class="paragraph">
-<p>The created shared flag.</p>
-</div>
 </div>
 </div>
 <div class="sect2">
@@ -255,7 +264,7 @@ Due to the design of <strong>ljuv</strong>, if an handle callback is an anchor f
 <dt class="hdlist1">shared flag</dt>
 <dt class="hdlist1">async handle</dt>
 <dd>
-<p>imported as a function which safely calls <code>async:send()</code></p>
+<p>imported as a function which safely calls <a href="#async-send">async:send()</a></p>
 </dd>
 </dl>
 </div>
@@ -271,9 +280,8 @@ The returned payload must be imported exactly once to prevent memory leak and in
 </tr>
 </table>
 </div>
-<div class="sect3">
-<h4 id="_parameters_2"><a class="anchor" href="#_parameters_2"></a>Parameters</h4>
 <div class="dlist">
+<div class="title">Parameters</div>
 <dl>
 <dt class="hdlist1">o</dt>
 <dd>
@@ -285,12 +293,8 @@ The returned payload must be imported exactly once to prevent memory leak and in
 </dd>
 </dl>
 </div>
-</div>
-<div class="sect3">
-<h4 id="_returns_2"><a class="anchor" href="#_returns_2"></a>Returns</h4>
 <div class="paragraph">
-<p>A payload encodable by String Buffers.</p>
-</div>
+<p>Returns a payload encodable by String Buffers.</p>
 </div>
 </div>
 <div class="sect2">
@@ -298,8 +302,6 @@ The returned payload must be imported exactly once to prevent memory leak and in
 <div class="paragraph">
 <p>Import an object payload.</p>
 </div>
-<div class="sect3">
-<h4 id="_parameters_3"><a class="anchor" href="#_parameters_3"></a>Parameters</h4>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">payload</dt>
@@ -309,12 +311,90 @@ The returned payload must be imported exactly once to prevent memory leak and in
 </dd>
 </dl>
 </div>
-</div>
-<div class="sect3">
-<h4 id="_returns_3"><a class="anchor" href="#_returns_3"></a>Returns</h4>
 <div class="paragraph">
-<p>Imported object.</p>
+<p>Returns imported object.</p>
 </div>
+</div>
+<div class="sect2">
+<h3 id="_ljuv_new_shared_flagvalue_final_value"><a class="anchor" href="#_ljuv_new_shared_flagvalue_final_value"></a>ljuv.new_shared_flag(value [, final_value])</h3>
+<div class="paragraph">
+<p>Create a shared flag.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">value</dt>
+<dd>
+<p>integer (C <code>int</code>)</p>
+</dd>
+<dt class="hdlist1">final_value</dt>
+<dd>
+<p>same as <em>value</em>, but set at finalization</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_shared_flagsetvalue"><a class="anchor" href="#_shared_flagsetvalue"></a>shared_flag:set(value)</h3>
+<div class="paragraph">
+<p>Set the shared flag&#8217;s value.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">value</dt>
+<dd>
+<p>integer (C <code>int</code>)</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_shared_flagget"><a class="anchor" href="#_shared_flagget"></a>shared_flag:get()</h3>
+<div class="paragraph">
+<p>Returns the shared flag&#8217;s value.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ljuv_new_channel"><a class="anchor" href="#_ljuv_new_channel"></a>ljuv.new_channel()</h3>
+<div class="paragraph">
+<p>Create a channel.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_channelpush"><a class="anchor" href="#_channelpush"></a>channel:push(&#8230;&#8203;)</h3>
+<div class="paragraph">
+<p>Push a message.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">&#8230;&#8203;</dt>
+<dd>
+<p>payload arguments</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_channelpull"><a class="anchor" href="#_channelpull"></a>channel:pull()</h3>
+<div class="paragraph">
+<p>Pull a message (blocking).</p>
+</div>
+<div class="paragraph">
+<p>Returns payload arguments.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_channeltry_pull"><a class="anchor" href="#_channeltry_pull"></a>channel:try_pull()</h3>
+<div class="paragraph">
+<p>Pull a message (non-blocking).</p>
+</div>
+<div class="paragraph">
+<p>Returns a boolean status, <strong>true</strong> followed by the payload arguments if a message has been pulled, or <strong>false</strong> otherwise.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_channelcount"><a class="anchor" href="#_channelcount"></a>channel:count()</h3>
+<div class="paragraph">
+<p>Count the number of pending messages.</p>
 </div>
 </div>
 <div class="sect2">
@@ -328,8 +408,9 @@ The returned payload must be imported exactly once to prevent memory leak and in
 <div class="paragraph">
 <p>Nothing will be done about the function&#8217;s upvalues as it would be semantically incorrect to transfer them (a Lua upvalue is a reference to an outer local, not just a value).</p>
 </div>
-<div class="sect3">
-<h4 id="_parameters_4"><a class="anchor" href="#_parameters_4"></a>Parameters</h4>
+<div class="paragraph">
+<p>The function&#8217;s return values, encoded by String Buffers, will be returned by <a href="#thread-join">thread:join()</a> on successful completion.</p>
+</div>
 <div class="dlist">
 <dl>
 <dt class="hdlist1">func</dt>
@@ -338,16 +419,220 @@ The returned payload must be imported exactly once to prevent memory leak and in
 </dd>
 <dt class="hdlist1">&#8230;&#8203;</dt>
 <dd>
-<p>arguments passed to the function, must be encodable by string buffers</p>
+<p>arguments passed to the function, must be encodable by String Buffers</p>
 </dd>
 </dl>
 </div>
 </div>
-<div class="sect3">
-<h4 id="_returns_4"><a class="anchor" href="#_returns_4"></a>Returns</h4>
+<div class="sect2">
+<h3 id="_threadrunning"><a class="anchor" href="#_threadrunning"></a>thread:running()</h3>
 <div class="paragraph">
-<p>The created thread.</p>
+<p>Check if the thread is still running. Returns a boolean.</p>
 </div>
+</div>
+<div class="sect2">
+<h3 id="thread-join"><a class="anchor" href="#thread-join"></a>thread:join()</h3>
+<div class="paragraph">
+<p>Join the thread (blocking).</p>
+</div>
+<div class="paragraph">
+<p>Also releases the thread resources.</p>
+</div>
+<div class="paragraph">
+<p>Returns a boolean status, <strong>true</strong> followed by the thread function return values on successful completion, or <strong>false</strong> followed by an error traceback on failure.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_ljuv_new_loop"><a class="anchor" href="#_ljuv_new_loop"></a>ljuv.new_loop()</h3>
+<div class="paragraph">
+<p>Create a loop.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="loop-run"><a class="anchor" href="#loop-run"></a>loop:run([mode])</h3>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">mode</dt>
+<dd>
+<p>string: <code>default</code>, <code>once</code> or <code>nowait</code></p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Returns a boolean status, <strong>true</strong> if there is work left in the loop and the function should be called again, <strong>false</strong> otherwise.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_loopalive"><a class="anchor" href="#_loopalive"></a>loop:alive()</h3>
+<div class="paragraph">
+<p>Returns a boolean.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="loop-stop"><a class="anchor" href="#loop-stop"></a>loop:stop()</h3>
+<div class="paragraph">
+<p>Stop the loop.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_loopnow"><a class="anchor" href="#_loopnow"></a>loop:now()</h3>
+<div class="paragraph">
+<p>Get the current loop time (in seconds).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_loopupdate_time"><a class="anchor" href="#_loopupdate_time"></a>loop:update_time()</h3>
+<div class="paragraph">
+<p>Update the current loop time.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_handleis_active"><a class="anchor" href="#_handleis_active"></a>handle:is_active()</h3>
+<div class="paragraph">
+<p>Returns a boolean.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_handleget_loop"><a class="anchor" href="#_handleget_loop"></a>handle:get_loop()</h3>
+<div class="paragraph">
+<p>Get the associated loop. Returns <code>nil</code> if the loop is already released.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_handleget_type"><a class="anchor" href="#_handleget_type"></a>handle:get_type()</h3>
+<div class="paragraph">
+<p>Get the handle type.</p>
+</div>
+<div class="paragraph">
+<p>Returns a string defined by <code>uv_handle_type_name</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="handle-close"><a class="anchor" href="#handle-close"></a>handle:close()</h3>
+<div class="paragraph">
+<p>Close the handle. Idempotent.</p>
+</div>
+<div class="paragraph">
+<p>Subsequent use of the handle will throw an error.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_looptimer"><a class="anchor" href="#_looptimer"></a>loop:timer()</h3>
+<div class="paragraph">
+<p>Create a timer handle.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_timerstarttimeout_repeat_period_callback"><a class="anchor" href="#_timerstarttimeout_repeat_period_callback"></a>timer:start(timeout, repeat_period, callback)</h3>
+<div class="paragraph">
+<p>Start the timer.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">timeout</dt>
+<dd>
+<p>first timeout in seconds</p>
+</dd>
+<dt class="hdlist1">repeat_period</dt>
+<dd>
+<p>repeat period in seconds, <code>0</code> to disable</p>
+</dd>
+<dt class="hdlist1">callback</dt>
+<dd>
+<p><code>(timer)</code></p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_timerstop"><a class="anchor" href="#_timerstop"></a>timer:stop()</h3>
+<div class="paragraph">
+<p>Stop the timer.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_timeragain"><a class="anchor" href="#_timeragain"></a>timer:again()</h3>
+<div class="paragraph">
+<p>Stop the timer, and if it is repeating restart it using the repeat value as the timeout.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_timerset_repeatperiod"><a class="anchor" href="#_timerset_repeatperiod"></a>timer:set_repeat(period)</h3>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">period</dt>
+<dd>
+<p>repeat period in seconds, <code>0</code> to disable</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_timerget_repeat"><a class="anchor" href="#_timerget_repeat"></a>timer:get_repeat()</h3>
+<div class="paragraph">
+<p>Get the repeat period (in seconds).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_timerget_due_in"><a class="anchor" href="#_timerget_due_in"></a>timer:get_due_in()</h3>
+<div class="paragraph">
+<p>Get the timer due value (in seconds, <code>0</code> if expired).</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_loopasynccallback"><a class="anchor" href="#_loopasynccallback"></a>loop:async(callback)</h3>
+<div class="paragraph">
+<p>Create an async handle.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">callback</dt>
+<dd>
+<p><code>(async)</code></p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="async-send"><a class="anchor" href="#async-send"></a>async:send()</h3>
+<div class="paragraph">
+<p>Wake up the event loop and call the async handle’s callback.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_loopsignal"><a class="anchor" href="#_loopsignal"></a>loop:signal()</h3>
+<div class="paragraph">
+<p>Create a signal handle.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_signalstartsignum_callback"><a class="anchor" href="#_signalstartsignum_callback"></a>signal:start(signum, callback)</h3>
+<div class="paragraph">
+<p>Start watching for the given signal.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">signum</dt>
+<dd>
+<p>signal number</p>
+</dd>
+<dt class="hdlist1">callback</dt>
+<dd>
+<p><code>(signal, signum)</code></p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_signalstart_oneshotsignum_callback"><a class="anchor" href="#_signalstart_oneshotsignum_callback"></a>signal:start_oneshot(signum, callback)</h3>
+<div class="paragraph">
+<p>Same as <code>start()</code>, but the signal handler is reset the moment the signal is received.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_signalstop"><a class="anchor" href="#_signalstop"></a>signal:stop()</h3>
+<div class="paragraph">
+<p>Stop watching for signals.</p>
 </div>
 </div>
 </div>
@@ -355,7 +640,7 @@ The returned payload must be imported exactly once to prevent memory leak and in
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-01-16 20:44:21 +0100
+Last updated 2022-01-18 20:35:08 +0100
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
