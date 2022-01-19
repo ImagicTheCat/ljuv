@@ -128,10 +128,6 @@ function Handle:is_active()
   check_handle(self)
   return L.uv_is_active(cast_handle(self)) > 0
 end
-function Handle:is_closing()
-  check_handle(self)
-  return L.uv_is_closing(cast_handle(self)) > 0
-end
 function Handle:get_loop()
   check_handle(self)
   return loops_refmap[refkey(L.uv_handle_get_loop(cast_handle(self)))]

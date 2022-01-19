@@ -28,10 +28,6 @@ Update the current loop time.
 
 Returns a boolean.
 
-= handle:is_closing()
-
-Returns a boolean.
-
 = handle:get_loop()
 
 Get the associated loop. Returns `nil` if the loop is already released.
