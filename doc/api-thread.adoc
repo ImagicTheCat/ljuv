@@ -59,13 +59,17 @@ func:: thread entry function, a Lua function or a string of Lua code/bytecode
 
 = thread:running()
 
-Check if the thread is still running. Returns a boolean.
+Check if the thread is still running. The thread is marked as running at creation and the flag is set to *false* at the end of its execution.
+
+TIP: This is a general convenient implementation. More specific detection mechanisms, e.g. using an *async* handle, may be implemented from the entry function.
+
+Returns a boolean.
 
 [#thread-join]
 = thread:join()
 
 Join the thread (blocking).
 
-Also releases the thread resources.
+Thread objects are not subject to automatic memory management; this function must be called to gracefully wait for the thread to complete and release its resources.
 
 Returns a boolean status, *true* followed by the thread function return values on successful completion, or *false* followed by an error traceback on failure.
