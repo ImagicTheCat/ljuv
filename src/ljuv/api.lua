@@ -8,6 +8,7 @@ ffi.cdef[[
 void* malloc(size_t);
 void free(void*);
 ]]
+local libuv = require("ljuv.libuv")
 
 local M = {}
 
