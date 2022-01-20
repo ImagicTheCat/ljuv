@@ -88,6 +88,7 @@ table {
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
+<li><a href="#_levels_of_abstraction">Levels of abstraction</a></li>
 <li><a href="#_error_handling">Error handling</a>
 <ul class="sectlevel2">
 <li><a href="#_callbacks">Callbacks</a></li>
@@ -168,6 +169,26 @@ When the documentation is very succinct because it is just a layer above the <st
 </td>
 </tr>
 </table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_levels_of_abstraction"><a class="anchor" href="#_levels_of_abstraction"></a>Levels of abstraction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If the regular API is too high level, e.g. poor performance or some features are missing, the <strong>ljuv</strong> submodules may be directly used:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>ljuv.libuv</code></dt>
+<dd>
+<p>The FFI binding and library namespace of <strong>libuv</strong> (not exhaustive).</p>
+</dd>
+<dt class="hdlist1"><code>ljuv.wrapper</code></dt>
+<dd>
+<p>The <strong>ljuv</strong> C API, which is used to implement additional features like thread and channel.</p>
+</dd>
+</dl>
 </div>
 </div>
 </div>
@@ -640,7 +661,7 @@ The returned payload must be imported exactly once to prevent memory leak and in
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-01-18 20:35:08 +0100
+Last updated 2022-01-20 01:26:04 +0100
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
