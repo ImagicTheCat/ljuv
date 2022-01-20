@@ -451,7 +451,22 @@ The returned payload must be imported exactly once to prevent memory leak and in
 <div class="sect2">
 <h3 id="_threadrunning"><a class="anchor" href="#_threadrunning"></a>thread:running()</h3>
 <div class="paragraph">
-<p>Check if the thread is still running. Returns a boolean.</p>
+<p>Check if the thread is still running. The thread is marked as running at creation and the flag is set to <strong>false</strong> at the end of its execution.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+This is a general convenient implementation. More specific detection mechanisms, e.g. using an <strong>async</strong> handle, may be implemented from the entry function.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Returns a boolean.</p>
 </div>
 </div>
 <div class="sect2">
@@ -460,7 +475,7 @@ The returned payload must be imported exactly once to prevent memory leak and in
 <p>Join the thread (blocking).</p>
 </div>
 <div class="paragraph">
-<p>Also releases the thread resources.</p>
+<p>Thread objects are not subject to automatic memory management; this function must be called to gracefully wait for the thread to complete and release its resources.</p>
 </div>
 <div class="paragraph">
 <p>Returns a boolean status, <strong>true</strong> followed by the thread function return values on successful completion, or <strong>false</strong> followed by an error traceback on failure.</p>
