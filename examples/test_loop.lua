@@ -38,8 +38,10 @@ do -- Test async and cdata identity.
 end
 do -- Test async export.
   local loop = ljuv.new_loop()
+  local ok
   local async = loop:async(function(async) ok = true; async:close() end)
   local async_send = ljuv.import(ljuv.export(async))
   async_send()
   loop:run()
+  assert(ok)
 end
