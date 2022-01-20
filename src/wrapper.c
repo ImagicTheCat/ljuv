@@ -216,7 +216,8 @@ typedef struct ljuv_thread{
 } ljuv_thread;
 
 static const char thread_lua[] =
-  "local function pack(...) return {n = select('#', ...), ...} end\n\
+  "require('ffi') -- fix buffer cdata decoding\n\
+  local function pack(...) return {n = select('#', ...), ...} end\n\
   local buffer = require('string.buffer')\n\
   local errtrace\n\
   local function error_handler(err) errtrace = debug.traceback(err, 2) end\n\
