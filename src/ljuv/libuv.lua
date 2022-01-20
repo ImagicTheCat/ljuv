@@ -7,7 +7,7 @@ local ffi = require("ffi")
 
 if ffi.os == "Windows" then
   if ffi.abi("64bit") then ffi.cdef("typedef UINT_PTR uint64_t;")
-  else ffi.cdef("typedef UINT_PTR unsigned int") end
+  else ffi.cdef("typedef UINT_PTR unsigned int;") end
   --
   ffi.cdef[[
 typedef unsigned long ULONG
