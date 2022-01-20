@@ -11,6 +11,13 @@ Not only a binding to *libuv*, the library aims to expose different levels of ab
 
 NOTE: When the documentation is very succinct because it is just a layer above the *libuv* API, refer to the *libuv* documentation.
 
+== Levels of abstraction
+
+If the regular API is too high level, e.g. poor performance or some features are missing, the *ljuv* submodules may be directly used:
+
+`ljuv.libuv`:: The FFI binding and library namespace of *libuv* (not exhaustive).
+`ljuv.wrapper`:: The *ljuv* C API, which is used to implement additional features like thread and channel.
+
 == Error handling
 
 === Callbacks
