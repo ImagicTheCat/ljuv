@@ -424,7 +424,10 @@ The returned payload must be imported exactly once to prevent memory leak and in
 <p>Create a thread.</p>
 </div>
 <div class="paragraph">
-<p>It will try to export each argument first which allows, for example, to pass a channel without manual calls to export/import.</p>
+<p>The created Lua state inherits from the current values of <code>package.path</code> and <code>package.cpath</code>.</p>
+</div>
+<div class="paragraph">
+<p>It attempts to export each argument which allows, for example, to pass a channel without manual calls to export/import.</p>
 </div>
 <div class="paragraph">
 <p>Nothing will be done about the function&#8217;s upvalues as it would be semantically incorrect to transfer them (a Lua upvalue is a reference to an outer local, not just a value).</p>
@@ -661,7 +664,7 @@ The returned payload must be imported exactly once to prevent memory leak and in
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2022-01-20 01:26:04 +0100
+Last updated 2022-01-20 01:26:44 +0100
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
