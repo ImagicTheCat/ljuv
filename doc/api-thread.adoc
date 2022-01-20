@@ -46,7 +46,9 @@ Count the number of pending messages.
 
 Create a thread.
 
-It will try to export each argument first which allows, for example, to pass a channel without manual calls to export/import.
+The created Lua state inherits from the current values of `package.path` and `package.cpath`.
+
+It attempts to export each argument which allows, for example, to pass a channel without manual calls to export/import.
 
 Nothing will be done about the function's upvalues as it would be semantically incorrect to transfer them (a Lua upvalue is a reference to an outer local, not just a value).
 
