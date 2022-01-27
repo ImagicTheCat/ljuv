@@ -25,13 +25,13 @@ int object_init(ljuv_object *obj, void (*destructor)(ljuv_object *obj))
   obj->destructor = destructor;
   return uv_mutex_init(&obj->mutex);
 }
-void object_retain(ljuv_object *obj)
+void ljuv_object_retain(ljuv_object *obj)
 {
   uv_mutex_lock(&obj->mutex);
   obj->count++;
   uv_mutex_unlock(&obj->mutex);
 }
-void object_release(ljuv_object *obj)
+void ljuv_object_release(ljuv_object *obj)
 {
   uv_mutex_lock(&obj->mutex);
   uint32_t count = --obj->count;
@@ -54,7 +54,7 @@ typedef struct ljuv_shared_flag{
 
 // Create shared flag.
 // return NULL on failure
-ljuv_shared_flag* shared_flag_create(int flag)
+ljuv_shared_flag* ljuv_shared_flag_create(int flag)
 {
   // object
   ljuv_shared_flag *shared_flag = malloc(sizeof(ljuv_shared_flag));
@@ -64,13 +64,13 @@ ljuv_shared_flag* shared_flag_create(int flag)
   shared_flag->flag = flag;
   return shared_flag;
 }
-void shared_flag_set(ljuv_shared_flag *self, int flag)
+void ljuv_shared_flag_set(ljuv_shared_flag *self, int flag)
 {
   object_lock((ljuv_object*)self);
   self->flag = flag;
   object_unlock((ljuv_object*)self);
 }
-int shared_flag_get(ljuv_shared_flag *self)
+int ljuv_shared_flag_get(ljuv_shared_flag *self)
 {
   object_lock((ljuv_object*)self);
   int flag = self->flag;
@@ -120,7 +120,7 @@ void channel_destroy(ljuv_object *obj)
 
 // Create channel (object).
 // return NULL on failure
-ljuv_channel* channel_create(void)
+ljuv_channel* ljuv_channel_create(void)
 {
   // object
   ljuv_channel *channel = malloc(sizeof(ljuv_channel));
@@ -137,7 +137,7 @@ ljuv_channel* channel_create(void)
 
 // Push message data (makes a copy).
 // return false on allocation failure
-bool channel_push(ljuv_channel *channel, const uint8_t *data, size_t size)
+bool ljuv_channel_push(ljuv_channel *channel, const uint8_t *data, size_t size)
 {
   // copy data
   uint8_t *copy = malloc(size);
@@ -178,7 +178,7 @@ uint8_t* channel_dequeue(ljuv_channel *channel, size_t *size)
 
 // Pull message data (blocks if empty).
 // The returned data must be freed with free().
-uint8_t* channel_pull(ljuv_channel *channel, size_t *size)
+uint8_t* ljuv_channel_pull(ljuv_channel *channel, size_t *size)
 {
   // wait
   uv_sem_wait(&channel->semaphore);
@@ -187,7 +187,7 @@ uint8_t* channel_pull(ljuv_channel *channel, size_t *size)
 
 // Pull message data (non-blocking).
 // Return non-NULL on success; the returned data must be freed with free().
-uint8_t* channel_try_pull(ljuv_channel *channel, size_t *size)
+uint8_t* ljuv_channel_try_pull(ljuv_channel *channel, size_t *size)
 {
   // wait
   if(uv_sem_trywait(&channel->semaphore) == 0)
@@ -196,7 +196,7 @@ uint8_t* channel_try_pull(ljuv_channel *channel, size_t *size)
 }
 
 // Count the number of pending messages.
-size_t channel_count(ljuv_channel *channel)
+size_t ljuv_channel_count(ljuv_channel *channel)
 {
   object_lock((ljuv_object*)channel);
   size_t count = channel->count;
@@ -264,7 +264,7 @@ void thread_run(void *arg)
 
 // Create thread.
 // return NULL on failure
-ljuv_thread* thread_create(const char *data, size_t size)
+ljuv_thread* ljuv_thread_create(const char *data, size_t size)
 {
   ljuv_thread *thread = malloc(sizeof(ljuv_thread));
   if(!thread) return NULL;
@@ -288,7 +288,7 @@ ljuv_thread* thread_create(const char *data, size_t size)
 }
 
 // Check if the thread is running.
-bool thread_running(ljuv_thread *thread)
+bool ljuv_thread_running(ljuv_thread *thread)
 {
   uv_mutex_lock(&thread->mutex);
   bool running = thread->running;
@@ -301,7 +301,7 @@ bool thread_running(ljuv_thread *thread)
 //
 // On success, thread data are released and data/size are filled.
 // The data pointer, if not NULL, must be freed with free().
-bool thread_join(ljuv_thread *thread, char **data, size_t *size)
+bool ljuv_thread_join(ljuv_thread *thread, char **data, size_t *size)
 {
   if(uv_thread_join(&thread->handle) == 0){
     *data = thread->data;
@@ -313,44 +313,4 @@ bool thread_join(ljuv_thread *thread, char **data, size_t *size)
   else return false;
 }
 
-// Wrapper (expose functions)
-
-typedef struct ljuv_wrapper{
-  void (*free)(void *data);
-  void (*object_retain)(ljuv_object *obj);
-  void (*object_release)(ljuv_object *obj);
-  ljuv_shared_flag* (*shared_flag_create)(int flag);
-  int (*shared_flag_get)(ljuv_shared_flag *self);
-  void (*shared_flag_set)(ljuv_shared_flag *self, int flag);
-  ljuv_channel* (*channel_create)(void);
-  bool (*channel_push)(ljuv_channel *channel, const uint8_t *data, size_t size);
-  uint8_t* (*channel_pull)(ljuv_channel *channel, size_t *size);
-  uint8_t* (*channel_try_pull)(ljuv_channel *channel, size_t *size);
-  size_t (*channel_count)(ljuv_channel *channel);
-  ljuv_thread* (*thread_create)(const char *data, size_t size);
-  bool (*thread_running)(ljuv_thread *thread);
-  bool (*thread_join)(ljuv_thread *thread, char **data, size_t *size);
-} ljuv_wrapper;
-
-static ljuv_wrapper wrapper = {
-  free,
-  object_retain,
-  object_release,
-  shared_flag_create,
-  shared_flag_get,
-  shared_flag_set,
-  channel_create,
-  channel_push,
-  channel_pull,
-  channel_try_pull,
-  channel_count,
-  thread_create,
-  thread_running,
-  thread_join
-};
-
-int luaopen_ljuv_wrapper_c(lua_State *L)
-{
-  lua_pushlightuserdata(L, &wrapper);
-  return 1;
-}
+void ljuv_free(void *ptr){ free(ptr); }

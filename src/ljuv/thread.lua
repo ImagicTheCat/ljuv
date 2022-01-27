@@ -3,8 +3,8 @@
 
 local ffi = require("ffi")
 local buffer = require("string.buffer")
-local wrapper = require("ljuv.wrapper")
 local api = require("ljuv.api")
+local W = require("ljuv.wrapper")
 
 local function pack(...) return {n = select("#", ...), ...} end
 local function ccheck(self)
@@ -22,17 +22,17 @@ local SharedFlag_mt = {__index = SharedFlag}
 local shared_flag_t = api.defineHandle("ljuv_shared_flag")
 
 local function SharedFlag_gc(self)
-  wrapper.object_release(ffi.cast("ljuv_object*", self.handle))
+  W.ljuv_object_release(ffi.cast("ljuv_object*", self.handle))
   self.handle = nil
 end
 -- flag: integer (C int)
 -- final_flag: (optional) flag set at finalization (workaround about GC dependencies)
 function M.new_shared_flag(flag, final_flag)
-  local shared_flag = shared_flag_t(wrapper.shared_flag_create(flag))
+  local shared_flag = shared_flag_t(W.ljuv_shared_flag_create(flag))
   assert(shared_flag.handle ~= nil, "failed to create shared flag")
   if final_flag then
     return ffi.gc(shared_flag, function(self)
-      wrapper.shared_flag_set(self.handle, final_flag)
+      W.ljuv_shared_flag_set(self.handle, final_flag)
       SharedFlag_gc(self)
     end)
   else
@@ -40,8 +40,8 @@ function M.new_shared_flag(flag, final_flag)
   end
 end
 -- flag: integer (C int)
-function SharedFlag:set(flag) ccheck(self); wrapper.shared_flag_set(self.handle, flag) end
-function SharedFlag:get() ccheck(self); return wrapper.shared_flag_get(self.handle) end
+function SharedFlag:set(flag) ccheck(self); W.ljuv_shared_flag_set(self.handle, flag) end
+function SharedFlag:get() ccheck(self); return W.ljuv_shared_flag_get(self.handle) end
 
 ffi.metatype(shared_flag_t, SharedFlag_mt)
 
@@ -53,11 +53,11 @@ local channels_data = setmetatable({}, {__mode = "k"})
 local channel_t = api.defineHandle("ljuv_channel")
 
 local function Channel_gc(self)
-  wrapper.object_release(ffi.cast("ljuv_object*", self.handle))
+  W.ljuv_object_release(ffi.cast("ljuv_object*", self.handle))
   self.handle = nil
 end
 function M.new_channel()
-  local channel = channel_t(wrapper.channel_create())
+  local channel = channel_t(W.ljuv_channel_create())
   assert(channel.handle ~= nil, "failed to create channel")
   return ffi.gc(channel, Channel_gc)
 end
@@ -73,7 +73,7 @@ function Channel:push(...)
   buf:reset()
   buf:encode(pack(...))
   -- push
-  assert(wrapper.channel_push(self.handle, buf:ref()), "failed to allocate channel data")
+  assert(W.ljuv_channel_push(self.handle, buf:ref()), "failed to allocate channel data")
 end
 
 -- Pull a message (blocking).
@@ -82,11 +82,11 @@ function Channel:pull()
   ccheck(self)
   -- pull
   local size = ffi.new("size_t[1]")
-  local ptr = wrapper.channel_pull(self.handle, size)
+  local ptr = W.ljuv_channel_pull(self.handle, size)
   -- decode
   decode_buf:set(ptr, size[0])
   local data = decode_buf:decode()
-  wrapper.free(ptr)
+  W.ljuv_free(ptr)
   return unpack(data, 1, data.n)
 end
 
@@ -96,19 +96,19 @@ function Channel:try_pull()
   ccheck(self)
   -- pull
   local size = ffi.new("size_t[1]")
-  local ptr = wrapper.channel_try_pull(self.handle, size)
+  local ptr = W.ljuv_channel_try_pull(self.handle, size)
   -- decode
   if ptr ~= nil then
     decode_buf:set(ptr, size[0])
     local data = decode_buf:decode()
-    wrapper.free(ptr)
+    W.ljuv_free(ptr)
     return true, unpack(data, 1, data.n)
   end
   return false
 end
 
 -- Count the number of pending messages.
-function Channel:count() ccheck(self); return tonumber(wrapper.channel_count(self.handle)) end
+function Channel:count() ccheck(self); return tonumber(W.ljuv_channel_count(self.handle)) end
 
 ffi.metatype(channel_t, Channel_mt)
 
@@ -136,13 +136,13 @@ function M.new_thread(func, ...)
     func = func, args = args
   })
   -- create thread
-  local thread = thread_t(wrapper.thread_create(data, #data))
+  local thread = thread_t(W.ljuv_thread_create(data, #data))
   assert(thread.handle ~= nil, "failed to create thread")
   return thread
 end
 function Thread:running()
   if self.handle == nil then return false end
-  return wrapper.thread_running(self.handle)
+  return W.ljuv_thread_running(self.handle)
 end
 -- Join thread.
 -- return (false, errtrace) on thread error or (true, return values...)
@@ -151,12 +151,12 @@ function Thread:join()
   -- join
   local size = ffi.new("size_t[1]")
   local data = ffi.new("char*[1]")
-  assert(wrapper.thread_join(self.handle, data, size), "failed to join thread")
+  assert(W.ljuv_thread_join(self.handle, data, size), "failed to join thread")
   self.handle = nil -- mark released
   assert(data[0] ~= nil, "missing thread join data")
   -- decode
   local str = ffi.string(data[0], size[0])
-  wrapper.free(data[0])
+  W.ljuv_free(data[0])
   local ldata = buffer.decode(str)
   return unpack(ldata, 1, ldata.n)
 end
@@ -183,10 +183,10 @@ local EXPORT_KEY = "ljuv-export-a9c0f255c"
 function M.export(o, soft)
   local payload
   if ffi.istype(shared_flag_t, o) then
-    wrapper.object_retain(ffi.cast("ljuv_object*", o.handle))
+    W.ljuv_object_retain(ffi.cast("ljuv_object*", o.handle))
     payload = {type = "shared_flag", ptr = ffi.cast("uintptr_t", ffi.cast("void*", o.handle))}
   elseif ffi.istype(channel_t, o) then
-    wrapper.object_retain(ffi.cast("ljuv_object*", o.handle))
+    W.ljuv_object_retain(ffi.cast("ljuv_object*", o.handle))
     payload = {type = "channel", ptr = ffi.cast("uintptr_t", ffi.cast("void*", o.handle))}
   else payload = M.export_handle(o) end -- defined in ljuv.lua
   -- return payload
