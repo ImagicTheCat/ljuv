@@ -118,32 +118,48 @@ local Thread = {}
 local Thread_mt = {__index = Thread}
 local thread_t = api.defineHandle("ljuv_thread")
 
+local function thread_main()
+  ljuv_main = nil -- remove main code
+  require('ffi') -- fix buffer cdata decoding
+  local function pack(...) return {n = select('#', ...), ...} end
+  local buffer = require('string.buffer')
+  local errtrace
+  local function error_handler(err) errtrace = debug.traceback(err, 2) end
+  -- execute
+  local ok, data = xpcall(function()
+    local data = buffer.decode(ljuv_data)
+    ljuv_data = nil
+    package.path, package.cpath = data.path, data.cpath
+    local ljuv = require('ljuv')
+    -- execute entry function
+    local func, err = load(data.entry_code)
+    assert(func, err)
+    local rets = pack(true, func(unpack(data.args, 1, data.args.n)))
+    return buffer.encode(rets)
+  end, error_handler)
+  -- setup return data
+  if ok then ljuv_data = data
+  else ljuv_data = buffer.encode(pack(false, errtrace)) end
+end
+
 -- Create thread.
--- The arguments must be encodable by string buffers
--- It will try to export each argument first, i.e. it's possible to pass a
--- channel without manual calls to export/import.
+-- The arguments must be encodable by string buffers.
 --
--- func: thread entry, a Lua function or a string of Lua code/bytecode
+-- entry_code: thread entry code (plain or bytecode)
 -- ...: arguments passed to the function
-function M.new_thread(func, ...)
-  func = type(func) == "string" and func or string.dump(func)
-  -- try to export arguments
-  local args = pack(...)
-  for i, arg in ipairs(args) do args[i] = M.export(arg, true) or arg end
+function M.new_thread(entry_code, ...)
   -- encode data
   local data = buffer.encode({
     path = package.path, cpath = package.cpath,
-    func = func, args = args
+    entry_code = entry_code, args = pack(...)
   })
   -- create thread
-  local thread = thread_t(W.ljuv_thread_create(data, #data))
+  local thread_main_code = string.dump(thread_main)
+  local thread = thread_t(W.ljuv_thread_create(thread_main_code, #thread_main_code, data, #data))
   assert(thread.handle ~= nil, "failed to create thread")
   return thread
 end
-function Thread:running()
-  if self.handle == nil then return false end
-  return W.ljuv_thread_running(self.handle)
-end
+
 -- Join thread.
 -- return (false, errtrace) on thread error or (true, return values...)
 function Thread:join()
@@ -154,7 +170,7 @@ function Thread:join()
   assert(W.ljuv_thread_join(self.handle, data, size), "failed to join thread")
   self.handle = nil -- mark released
   assert(data[0] ~= nil, "missing thread join data")
-  -- decode
+  -- decode return values
   local str = ffi.string(data[0], size[0])
   W.ljuv_free(data[0])
   local ldata = buffer.decode(str)

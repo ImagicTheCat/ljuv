@@ -208,92 +208,55 @@ size_t ljuv_channel_count(ljuv_channel *channel)
 
 typedef struct ljuv_thread{
   uv_thread_t handle;
-  uv_mutex_t mutex;
   lua_State *L;
-  bool running;
   char *data;
   size_t data_size;
 } ljuv_thread;
-
-static const char thread_lua[] =
-  "require('ffi') -- fix buffer cdata decoding\n\
-  local function pack(...) return {n = select('#', ...), ...} end\n\
-  local buffer = require('string.buffer')\n\
-  local errtrace\n\
-  local function error_handler(err) errtrace = debug.traceback(err, 2) end\n\
-  -- execute\n\
-  local ok, data = xpcall(function()\n\
-    local data = buffer.decode(ljuv_data)\n\
-    ljuv_data = nil\n\
-    package.path, package.cpath = data.path, data.cpath\n\
-    local ljuv = require('ljuv')\n\
-    for i, arg in ipairs(data.args) do data.args[i] = ljuv.import(arg, true) or arg end\n\
-    local func, err = load(data.func)\n\
-    assert(func, err)\n\
-    local rets = pack(true, func(unpack(data.args, 1, data.args.n)))\n\
-    return buffer.encode(rets)\n\
-  end, error_handler)\n\
-  if ok then ljuv_data = data\n\
-  else ljuv_data = buffer.encode(pack(false, errtrace)) end\n";
 
 // Thread entry function.
 void thread_run(void *arg)
 {
   ljuv_thread *thread = arg;
   lua_State *L = thread->L;
-  // init and execute
+  // init
   luaL_openlibs(L);
-  luaL_loadbuffer(L, thread_lua, strlen(thread_lua), "=[ljuv thread]");
-  lua_call(L, 0, 0);
-  // process returned data
-  lua_getglobal(thread->L, "ljuv_data");
-  const char* data_ptr = lua_tolstring(thread->L, -1, &thread->data_size);
-  if(data_ptr && thread->data_size > 0){
-    // copy
-    thread->data = malloc(thread->data_size);
-    if(thread->data) memcpy(thread->data, data_ptr, thread->data_size);
+  // execute main
+  lua_getglobal(thread->L, "ljuv_main");
+  size_t main_size = 0;
+  const char* main_ptr = lua_tolstring(thread->L, -1, &main_size);
+  if(main_ptr){
+    luaL_loadbuffer(L, main_ptr, strlen(main_size), "=[ljuv thread]");
+    lua_call(L, 0, 0);
   }
   else
-    thread->data = NULL;
-  // end thread state
-  lua_close(thread->L);
-  uv_mutex_lock(&thread->mutex);
-  thread->running = false;
-  uv_mutex_unlock(&thread->mutex);
+    return luaL_error(L, "%s", "missing \"ljuv_main\" global");
 }
 
 // Create thread.
 // return NULL on failure
-ljuv_thread* ljuv_thread_create(const char *data, size_t size)
+ljuv_thread* ljuv_thread_create(const char *main, size_t main_size, const char *data, size_t size)
 {
   ljuv_thread *thread = malloc(sizeof(ljuv_thread));
   if(!thread) return NULL;
-  // init mutex
-  if(uv_mutex_init(&thread->mutex) < 0){ free(thread); return NULL; }
+  thread->data = NULL;
+  thread->data_size = 0;
   // setup Lua state
   lua_State *L = luaL_newstate();
-  if(!L){ uv_mutex_destroy(&thread->mutex); free(thread); return NULL; }
+  if(!L){ free(thread); return NULL; }
   thread->L = L;
-  thread->running = true;
+  // setup main and data globals
+  lua_pushlstring(L, main, main_size);
+  lua_setglobal(L, "ljuv_main");
   lua_pushlstring(L, data, size);
   lua_setglobal(L, "ljuv_data");
   // run
   if(uv_thread_create(&thread->handle, thread_run, thread) != 0){
+    // release on failure
     lua_close(L);
-    uv_mutex_destroy(&thread->mutex);
     free(thread);
     return NULL;
   }
   return thread;
-}
-
-// Check if the thread is running.
-bool ljuv_thread_running(ljuv_thread *thread)
-{
-  uv_mutex_lock(&thread->mutex);
-  bool running = thread->running;
-  uv_mutex_unlock(&thread->mutex);
-  return running;
 }
 
 // Join thread.
@@ -304,9 +267,17 @@ bool ljuv_thread_running(ljuv_thread *thread)
 bool ljuv_thread_join(ljuv_thread *thread, char **data, size_t *size)
 {
   if(uv_thread_join(&thread->handle) == 0){
-    *data = thread->data;
-    *size = thread->data_size;
-    uv_mutex_destroy(&thread->mutex);
+    // process returned data
+    lua_getglobal(thread->L, "ljuv_data");
+    *size = 0;
+    const char* data_ptr = lua_tolstring(thread->L, -1, size);
+    if(data_ptr && *size > 0){
+      // copy
+      *data = malloc(data_size);
+      if(*data) memcpy(*data, data_ptr, *size);
+    }
+    // end thread state
+    lua_close(thread->L);
     free(thread);
     return true;
   }

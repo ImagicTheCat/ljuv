@@ -18,7 +18,7 @@ bool ljuv_channel_push(ljuv_channel *channel, const uint8_t *data, size_t size);
 uint8_t* ljuv_channel_pull(ljuv_channel *channel, size_t *size);
 uint8_t* ljuv_channel_try_pull(ljuv_channel *channel, size_t *size);
 size_t ljuv_channel_count(ljuv_channel *channel);
-ljuv_thread* ljuv_thread_create(const char *data, size_t size);
+ljuv_thread* ljuv_thread_create(const char *main, size_t main_size, const char *data, size_t size);
 bool ljuv_thread_running(ljuv_thread *thread);
 bool ljuv_thread_join(ljuv_thread *thread, char **data, size_t *size);
 void ljuv_free(void *ptr);
