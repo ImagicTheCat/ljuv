@@ -225,11 +225,11 @@ void thread_run(void *arg)
   size_t main_size = 0;
   const char* main_ptr = lua_tolstring(thread->L, -1, &main_size);
   if(main_ptr){
-    luaL_loadbuffer(L, main_ptr, strlen(main_size), "=[ljuv thread]");
+    luaL_loadbuffer(L, main_ptr, main_size, "=[ljuv thread]");
     lua_call(L, 0, 0);
   }
   else
-    return luaL_error(L, "%s", "missing \"ljuv_main\" global");
+    luaL_error(L, "%s", "missing \"ljuv_main\" global");
 }
 
 // Create thread.
@@ -273,7 +273,7 @@ bool ljuv_thread_join(ljuv_thread *thread, char **data, size_t *size)
     const char* data_ptr = lua_tolstring(thread->L, -1, size);
     if(data_ptr && *size > 0){
       // copy
-      *data = malloc(data_size);
+      *data = malloc(*size);
       if(*data) memcpy(*data, data_ptr, *size);
     }
     // end thread state

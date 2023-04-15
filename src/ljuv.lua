@@ -31,10 +31,7 @@ local thread = require("ljuv.thread")
 local L = require("ljuv.libuv")
 local C = ffi.C
 local uv_assert, refkey = api.assert, api.refkey
-
-local function ccheck(self)
-  assert(self.handle ~= nil, "cdata self is invalid or finalized")
-end
+local ccheck = api.ccheck
 
 -- Lazy main loop creation.
 local ljuv_mt = {__index = function(self, k)
@@ -128,14 +125,17 @@ function Handle:is_active()
   check_handle(self)
   return L.uv_is_active(cast_handle(self)) > 0
 end
+
 function Handle:get_loop()
   check_handle(self)
   return loops_refmap[refkey(L.uv_handle_get_loop(cast_handle(self)))]
 end
+
 function Handle:get_type()
   check_handle(self)
   return ffi.string(L.uv_handle_type_name(L.uv_handle_get_type(cast_handle(self))))
 end
+
 -- (idempotent)
 function Handle:close()
   if not handles_data[self] then return end
@@ -169,6 +169,7 @@ local last_traceback
 local function callback_error_handler(err)
   last_traceback = debug.traceback(err, 2)
 end
+
 local function handle_callback(raw_handle, ...)
   local handle = handles_refmap[refkey(raw_handle)]
   local data = handles_data[handle]
@@ -197,23 +198,28 @@ function Timer:start(timeout, t_repeat, callback)
   handles_data[self].callback = callback
   uv_assert(L.uv_timer_start(self, timer_cb, timeout, t_repeat))
 end
+
 function Timer:stop()
   check_handle(self)
   uv_assert(L.uv_timer_stop(self))
 end
+
 function Timer:again()
   check_handle(self)
   uv_assert(L.uv_timer_again(self))
 end
+
 function Timer:set_repeat(t_repeat)
   check_handle(self)
   if t_repeat > 0 then t_repeat = math.max(1, math.floor(t_repeat*1e3+0.5)) end
   uv_assert(L.uv_timer_set_repeat(self, t_repeat))
 end
+
 function Timer:get_repeat()
   check_handle(self)
   return tonumber(L.uv_timer_get_repeat(self))*1e-3
 end
+
 function Timer:get_due_in()
   check_handle(self)
   return tonumber(L.uv_timer_get_due_in(self))*1e-3
@@ -259,11 +265,13 @@ function Signal:start(signum, callback)
   handles_data[self].callback = callback
   uv_assert(L.uv_signal_start(self, signal_cb, signum))
 end
+
 function Signal:start_oneshot(signum, callback)
   check_handle(self)
   handles_data[self].callback = callback
   uv_assert(L.uv_signal_start_oneshot(self, signal_cb, signum))
 end
+
 function Signal:stop()
   check_handle(self)
   uv_assert(L.uv_signal_stop(self))
@@ -295,6 +303,28 @@ function thread.import_handle(payload)
       L.uv_async_send(async)
     end
   end
+end
+
+-- Thread abstraction
+
+-- Create a new system-thread and run a Lua function asynchronously.
+--
+-- The loop will not synchronously wait on running threads if garbage
+-- collected; the application should asynchronously wait on the callback.
+--
+-- entry: Lua function or code, plain or bytecode
+-- callback(ok, ...): called when terminated
+--- (false, err_trace): on error
+--- (true, ...): on success, where ... are thread return values
+-- ...: entry function arguments (must be encodable by string buffers)
+function Loop:thread(entry, callback, ...)
+  local entry_code = type(entry) == "string" and entry or string.dump(entry)
+  local thread_handle
+  local async = self:async(function(async)
+    async:close()
+    callback(thread_handle:join())
+  end)
+  thread_handle = thread.new_thread(async, entry_code, ...)
 end
 
 return ljuv

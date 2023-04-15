@@ -1,16 +1,16 @@
 -- https://github.com/ImagicTheCat/ljuv
 -- MIT license (see LICENSE or src/ljuv.lua)
 
+-- Mid-level abstraction module for multi-threading.
+
 local ffi = require("ffi")
 local buffer = require("string.buffer")
 local api = require("ljuv.api")
 local W = require("ljuv.wrapper")
 
 local function pack(...) return {n = select("#", ...), ...} end
-local function ccheck(self)
-  assert(self.handle ~= nil, "cdata self is invalid or finalized")
-end
 local decode_buf = buffer.new()
+local ccheck = api.ccheck
 
 local M = {}
 
@@ -25,6 +25,7 @@ local function SharedFlag_gc(self)
   W.ljuv_object_release(ffi.cast("ljuv_object*", self.handle))
   self.handle = nil
 end
+
 -- flag: integer (C int)
 -- final_flag: (optional) flag set at finalization (workaround about GC dependencies)
 function M.new_shared_flag(flag, final_flag)
@@ -39,6 +40,7 @@ function M.new_shared_flag(flag, final_flag)
     return ffi.gc(shared_flag, SharedFlag_gc)
   end
 end
+
 -- flag: integer (C int)
 function SharedFlag:set(flag) ccheck(self); W.ljuv_shared_flag_set(self.handle, flag) end
 function SharedFlag:get() ccheck(self); return W.ljuv_shared_flag_get(self.handle) end
@@ -56,6 +58,7 @@ local function Channel_gc(self)
   W.ljuv_object_release(ffi.cast("ljuv_object*", self.handle))
   self.handle = nil
 end
+
 function M.new_channel()
   local channel = channel_t(W.ljuv_channel_create())
   assert(channel.handle ~= nil, "failed to create channel")
@@ -118,19 +121,23 @@ local Thread = {}
 local Thread_mt = {__index = Thread}
 local thread_t = api.defineHandle("ljuv_thread")
 
+-- init globals:
+--- ljuv_main: main Lua code
+--- ljuv_data: passed data from new_thread()
 local function thread_main()
   ljuv_main = nil -- remove main code
-  require('ffi') -- fix buffer cdata decoding
+  require "ffi" -- fix buffer cdata decoding
   local function pack(...) return {n = select('#', ...), ...} end
-  local buffer = require('string.buffer')
+  local buffer = require "string.buffer"
   local errtrace
   local function error_handler(err) errtrace = debug.traceback(err, 2) end
+  -- decode data
+  local data = buffer.decode(ljuv_data); ljuv_data = nil
+  package.path, package.cpath = data.path, data.cpath
+  local ljuv = require "ljuv"
+  local async_send = ljuv.import(data.async)
   -- execute
   local ok, data = xpcall(function()
-    local data = buffer.decode(ljuv_data)
-    ljuv_data = nil
-    package.path, package.cpath = data.path, data.cpath
-    local ljuv = require('ljuv')
     -- execute entry function
     local func, err = load(data.entry_code)
     assert(func, err)
@@ -140,17 +147,20 @@ local function thread_main()
   -- setup return data
   if ok then ljuv_data = data
   else ljuv_data = buffer.encode(pack(false, errtrace)) end
+  async_send() -- signal correct thread termination
 end
 
 -- Create thread.
 -- The arguments must be encodable by string buffers.
 --
+-- async: async handle to signal the termination
 -- entry_code: thread entry code (plain or bytecode)
 -- ...: arguments passed to the function
-function M.new_thread(entry_code, ...)
+function M.new_thread(async, entry_code, ...)
   -- encode data
   local data = buffer.encode({
     path = package.path, cpath = package.cpath,
+    async = M.export(async),
     entry_code = entry_code, args = pack(...)
   })
   -- create thread

@@ -29,29 +29,42 @@ do -- Test channel.
   assert(ok and a == nil and b == 1)
   assert(channel_bis:count() == 0)
 end
-do -- Test thread: basic.
-  -- function
-  local thread = ljuv.new_thread(function(a, b) return a*b end, 6, 7)
-  local ok, r = thread:join()
-  assert(ok and r == 42)
-  -- string
-  local thread = ljuv.new_thread("local a,b = ...; return a*b", 6, 7)
-  local ok, r = thread:join()
-  assert(ok and r == 42)
-  -- error
-  local thread = ljuv.new_thread(function(a, b) return a*b end, 6, nil)
-  local ok, err = thread:join()
-  assert(not ok and err:find("attempt to perform arithmetic"))
+-- Test thread: basic.
+do -- function
+  local loop = ljuv.new_loop()
+  loop:thread(function(a, b) return a*b end,
+    function(ok, r) assert(ok and r == 42) end,
+    6, 7)
+  loop:run()
+end
+do -- string
+  local loop = ljuv.new_loop()
+  loop:thread("local a,b = ...; return a*b",
+    function(ok, r) assert(ok and r == 42) end,
+    6, 7)
+  loop:run()
+end
+do -- error
+  local loop = ljuv.new_loop()
+  loop:thread(function(a, b) return a*b end,
+    function(ok, err) assert(not ok and err:find("attempt to perform arithmetic")) end,
+    6, nil)
+  loop:run()
 end
 do -- Test thread: export.
   local channel = ljuv.new_channel()
-  local thread = ljuv.new_thread(function(channel)
-    local a,b = channel:pull()
-    channel:push(a*b)
-  end, channel)
-  assert(thread:running())
+  ljuv.loop:thread(
+    function(channel)
+      local ljuv = require "ljuv"
+      channel = ljuv.import(channel)
+      local a,b = channel:pull()
+      channel:push(a*b)
+    end,
+    function(ok, err)
+      assert(ok and channel:pull() == 42)
+    end,
+    ljuv.export(channel)
+  )
   channel:push(6, 7)
-  thread:join()
-  assert(not thread:running())
-  assert(channel:pull() == 42)
+  ljuv.loop:run()
 end

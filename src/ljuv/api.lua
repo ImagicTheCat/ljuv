@@ -40,4 +40,8 @@ function M.defineHandle(ptr_type)
   return ffi.typeof(ptr_type.."h")
 end
 
+function M.ccheck(self)
+  assert(self.handle ~= nil, "cdata self is invalid or finalized")
+end
+
 return M
