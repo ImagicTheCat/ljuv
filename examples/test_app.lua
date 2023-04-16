@@ -3,7 +3,7 @@ package.path = "src/?.lua;"..package.path
 
 local ljuv = require("ljuv")
 
-local pool = ljuv.loop:threadpool(1, function()
+local pool = ljuv.loop:threadpool(2, function()
   local function fib(n) return n < 2 and n or fib(n-2)+fib(n-1) end
   return {fib = fib}
 end)
@@ -17,3 +17,4 @@ coroutine.resume(coroutine.create(function()
 end))
 
 ljuv.loop:run()
+assert(pool.closed)

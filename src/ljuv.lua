@@ -329,7 +329,8 @@ end
 
 -- Thread-pool abstraction
 
-local function threadpool_main(async, cin, cout, interface_code)
+-- Entry function of each threadpool thread.
+local function threadpool_entry(async, cin, cout, interface_code)
   -- header
   local function pack(...) return {n = select("#", ...), ...} end
   local ljuv = require "ljuv"
@@ -355,6 +356,7 @@ local function threadpool_main(async, cin, cout, interface_code)
     msg = cin:pull()
   end
 end
+local threadpool_entry_bc = string.dump(threadpool_entry)
 
 local threadpool = {}
 local threadpool_mt = {__index = threadpool}
@@ -382,8 +384,8 @@ end
 
 -- Create a thread pool.
 -- thread_count: number of threads in the pool
--- interface_loader: a Lua function (uses string.dump) or a string of Lua
---   code/bytecode which returns a map of functions (called from worker threads)
+-- interface_loader: Lua function or code, plain or bytecode, which returns a
+--   map of functions (called from worker threads)
 function Loop:threadpool(thread_count, interface_loader)
   local interface_code = type(interface_loader) == "string" and
     interface_loader or string.dump(interface_loader)
@@ -418,7 +420,8 @@ function Loop:threadpool(thread_count, interface_loader)
     assert(ok, err)
   end
   for i=1, thread_count do
-    self:thread(threadpool_main, thread_callback, ljuv.export(o.async), ljuv.export(o.cin), ljuv.export(o.cout), interface_code)
+    self:thread(threadpool_entry_bc, thread_callback,
+      ljuv.export(o.async), ljuv.export(o.cin), ljuv.export(o.cout), interface_code)
   end
   return o
 end

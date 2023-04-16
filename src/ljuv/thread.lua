@@ -149,6 +149,7 @@ local function thread_main()
   else ljuv_data = buffer.encode(pack(false, errtrace)) end
   async_send() -- signal correct thread termination
 end
+local thread_main_code = string.dump(thread_main)
 
 -- Create thread.
 -- The arguments must be encodable by string buffers.
@@ -164,7 +165,6 @@ function M.new_thread(async, entry_code, ...)
     entry_code = entry_code, args = pack(...)
   })
   -- create thread
-  local thread_main_code = string.dump(thread_main)
   local thread = thread_t(W.ljuv_thread_create(thread_main_code, #thread_main_code, data, #data))
   assert(thread.handle ~= nil, "failed to create thread")
   return thread
