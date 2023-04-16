@@ -24,11 +24,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 
-local ffi = require("ffi")
-
-local api = require("ljuv.api")
-local thread = require("ljuv.thread")
-local L = require("ljuv.libuv")
+local ffi = require "ffi"
+local api = require "ljuv.api"
+local thread = require "ljuv.thread"
+local sbuffer = require "string.buffer"
+local L = require "ljuv.libuv"
 local C = ffi.C
 local uv_assert, refkey = api.assert, api.refkey
 local ccheck = api.ccheck
@@ -313,7 +313,7 @@ end
 -- collected; the application should asynchronously wait on the callback.
 --
 -- entry: Lua function or code, plain or bytecode
--- callback(ok, ...): called when terminated
+-- callback(ok, ...): called when terminated, common soft error handling interface
 --- (false, err_trace): on error
 --- (true, ...): on success, where ... are thread return values
 -- ...: entry function arguments (must be encodable by string buffers)
@@ -325,6 +325,134 @@ function Loop:thread(entry, callback, ...)
     callback(thread_handle:join())
   end)
   thread_handle = thread.new_thread(async, entry_code, ...)
+end
+
+-- Thread-pool abstraction
+
+local function threadpool_main(async, cin, cout, interface_code)
+  -- header
+  local function pack(...) return {n = select("#", ...), ...} end
+  local ljuv = require "ljuv"
+  -- inputs
+  async_send, cin, cout = ljuv.import(async), ljuv.import(cin), ljuv.import(cout)
+  -- load interface
+  local interface_loader, err = load(interface_code)
+  assert(interface_loader, err)
+  local interface = interface_loader()
+  -- setup dispatch
+  local function dispatch(id, op, ...)
+    cout:push(pack(id, true, interface[op](...)))
+  end
+  local traceback
+  local function error_handler(err) traceback = debug.traceback(err, 2) end
+  -- task loop
+  local msg = cin:pull()
+  while msg and msg ~= "exit" do
+    local ok = xpcall(dispatch, error_handler, unpack(msg, 1, msg.n))
+    if not ok then cout:push(pack(msg[1], false, traceback)) end
+    async_send() -- signal new result
+    -- next
+    msg = cin:pull()
+  end
+end
+
+local threadpool = {}
+local threadpool_mt = {__index = threadpool}
+
+local function r_assert(ok, ...)
+  if not ok then error(..., 0) else return ... end
+end
+
+local function pack(...) return {n = select("#", ...), ...} end
+
+-- Handle the inter-thread communications (result of operations).
+function threadpool_tick(self)
+  local ok, msg = self.cout:try_pull()
+  while ok do
+    local id = msg[1]
+    local callback = self.tasks[id]
+    if type(callback) == "thread" then
+      local ok, err = coroutine.resume(callback, unpack(msg, 2, msg.n))
+      if not ok then error(debug.traceback(callback, err), 0) end
+    else callback(unpack(msg, 2, msg.n)) end
+    -- next
+    ok, msg = self.cout:try_pull()
+  end
+end
+
+-- Create a thread pool.
+-- thread_count: number of threads in the pool
+-- interface_loader: a Lua function (uses string.dump) or a string of Lua
+--   code/bytecode which returns a map of functions (called from worker threads)
+function Loop:threadpool(thread_count, interface_loader)
+  local interface_code = type(interface_loader) == "string" and
+    interface_loader or string.dump(interface_loader)
+  -- instantiate
+  local o = setmetatable({}, threadpool_mt)
+  o.thread_count = thread_count
+  o.ids = 0
+  o.tasks = {}
+  -- build async interface (bind interface call functions)
+  o.interface = setmetatable({}, {__index = function(t, k)
+    -- build call handler
+    local function handler(...)
+      local co, main = coroutine.running()
+      if not co or main then error("interface call from a non-coroutine thread") end
+      o:call(k, co, ...)
+      return r_assert(coroutine.yield())
+    end
+    t[k] = handler; return handler
+  end})
+  -- create channels and async handle
+  o.cin, o.cout = thread.new_channel(), thread.new_channel()
+  o.async = self:async(function() threadpool_tick(o) end)
+  -- create threads
+  local exit_count = 0
+  local function thread_callback(ok, err)
+    exit_count = exit_count+1
+    if exit_count == thread_count then
+      -- threadpool termination
+      o.async:close()
+    end
+    -- propagate thread error
+    assert(ok, err)
+  end
+  for i=1, thread_count do
+    self:thread(threadpool_main, thread_callback, ljuv.export(o.async), ljuv.export(o.cin), ljuv.export(o.cout), interface_code)
+  end
+  return o
+end
+
+-- Call an operation on the thread pool interface.
+-- The callback can be a coroutine (will call coroutine.resume with the same parameters).
+--
+-- op: key to an operation of the interface
+-- callback(ok, ...): called on operation return, common soft error handling interface
+--- ...: return values or the error traceback on failure
+-- ...: call arguments
+function threadpool:call(op, callback, ...)
+  assert(not self.closed, "thread pool is closed")
+  -- gen id
+  self.ids = self.ids+1
+  if self.ids >= 2^53 then self.ids = 0 end
+  local id = self.ids
+  -- send
+  self.cin:push(pack(id, op, ...))
+  -- setup task: done afterwards to prevent clutter on an eventual push error
+  self.tasks[id] = callback
+end
+
+-- (idempotent)
+-- Close the thread pool (send exit signal to all threads).
+--
+-- There are no mechanisms to directly wait on the termination of the
+-- threadpool, because only the application knows the context of the work it
+-- has to do. I.e. this method should be called when all work is done.
+function threadpool:close()
+  if self.closed then return end
+  self.closed = true
+  -- send exit signal
+  for i=1, self.thread_count do self.cin:push("exit") end
 end
 
 return ljuv
