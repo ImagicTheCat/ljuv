@@ -1,15 +1,16 @@
+rockspec_format = "3.0"
 package = "ljuv"
-version = "scm-2"
+version = "scm-3"
 source = {
   url = "git://github.com/ImagicTheCat/ljuv",
 }
 
 description = {
-  summary = "Library built on libuv and LuaJIT 2.1.",
+  summary = "Module built on libuv and LuaJIT 2.1.",
   detailed = [[
-A main event loop combined with coroutines can be a way to nicely parallelize and synchronize various operations, which is what computing is mostly about.
+A main event loop combined with coroutines can be a way to nicely parallelize and synchronize various operations; one of the computing problems.
 
-Not only a binding to libuv, the library aims to expose different levels of abstraction and address problems like multi-threading.
+Not only a binding to libuv, the module aims to expose different levels of abstraction and address problems like multi-threading.
   ]],
   homepage = "https://github.com/ImagicTheCat/ljuv",
   license = "MIT"
@@ -20,7 +21,6 @@ dependencies = {
 }
 
 build = {
-  type = "builtin",
   modules = {
     ljuv = "src/ljuv.lua",
     ["ljuv.libuv"] = "src/ljuv/libuv.lua",
