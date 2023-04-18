@@ -4,9 +4,9 @@
 -- config
 local envs = {"luajit"}
 local tests = {
-  "examples/test_thread.lua",
-  "examples/test_loop.lua",
-  "examples/test_app.lua"
+  "tests/thread.lua",
+  "tests/loop.lua",
+  "tests/app.lua"
 }
 -- test
 local errors = 0
