@@ -1,48 +1,49 @@
+= Thread API
 
-= ljuv.new_shared_flag(value [, final_value])
+== ljuv.new_shared_flag(value [, final_value])
 
 Create a shared flag.
 
 value:: integer (C `int`)
 final_value:: same as _value_, but set at finalization
 
-= shared_flag:set(value)
+== shared_flag:set(value)
 
 Set the shared flag's value.
 
 value:: integer (C `int`)
 
-= shared_flag:get()
+== shared_flag:get()
 
 Returns the shared flag's value.
 
-= ljuv.new_channel()
+== ljuv.new_channel()
 
 Create a channel.
 
-= channel:push(...)
+== channel:push(...)
 
 Push a message.
 
 ...:: payload arguments
 
-= channel:pull()
+== channel:pull()
 
 Pull a message (blocking).
 
 Returns payload arguments.
 
-= channel:try_pull()
+== channel:try_pull()
 
 Pull a message (non-blocking).
 
 Returns a boolean status, *true* followed by the payload arguments if a message has been pulled, or *false* otherwise.
 
-= channel:count()
+== channel:count()
 
 Count the number of pending messages.
 
-= ljuv.new_thread(func, ...)
+== ljuv.new_thread(func, ...)
 
 Create a thread.
 
@@ -57,7 +58,7 @@ The function's return values, encoded by String Buffers, will be returned by <<t
 func:: thread entry function, a Lua function or a string of Lua code/bytecode
 ...:: arguments passed to the function, must be encodable by String Buffers
 
-= thread:running()
+== thread:running()
 
 Check if the thread is still running. The thread is marked as running at creation and the flag is set to *false* at the end of its execution.
 
@@ -66,7 +67,7 @@ TIP: This is a general convenient implementation. More specific detection mechan
 Returns a boolean.
 
 [#thread-join]
-= thread:join()
+== thread:join()
 
 Join the thread (blocking).
 

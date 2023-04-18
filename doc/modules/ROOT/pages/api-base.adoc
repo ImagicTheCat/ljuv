@@ -1,19 +1,21 @@
-= ljuv.loop
+= Base API
+
+== ljuv.loop
 
 Default loop, lazily created.
 
-= ljuv.assert(code)
+== ljuv.assert(code)
 
 Assert a *libuv* error code.
 
-= ljuv.export(o [, soft])
+== ljuv.export(o [, soft])
 
 Export an object to be passed to another thread.
 
 .Exportables
 channel::
 shared flag::
-async handle:: imported as a function which safely calls <<async-send>>
+async handle:: imported as a function which safely calls xref:api-loop.adoc#async-send[async:send]
 
 WARNING: The returned payload must be imported exactly once to prevent memory leak and invalid memory accesses.
 
@@ -23,7 +25,7 @@ soft:: truthy to not throw errors on invalid object (returns nothing)
 
 Returns a payload encodable by String Buffers.
 
-= ljuv.import(payload [, soft])
+== ljuv.import(payload [, soft])
 
 Import an object payload.
 

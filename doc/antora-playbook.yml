@@ -1,0 +1,23 @@
+site:
+  title: ljuv Documentation
+  url: https://imagicthecat.github.io/ljuv/
+  start_page: ljuv::index.adoc
+content:
+  edit_url: false
+  sources:
+  - url: ./../
+    branches: HEAD
+    start_path: doc
+asciidoc:
+  attributes:
+    page-pagination: ''
+ui:
+  bundle:
+    url: https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/HEAD/raw/build/ui-bundle.zip?job=bundle-stable
+    snapshot: true
+  supplemental_files: ./supplemental-ui
+output:
+  dir: ./../gh-pages
+antora:
+  extensions:
+  - '@antora/lunr-extension'
