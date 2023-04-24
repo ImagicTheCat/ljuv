@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>ljuv Documentation :: ljuv Documentation</title>
+    <link rel="canonical" href="https://imagicthecat.github.io/ljuv/ljuv/latest/index.html">
+    <link rel="next" href="api-basics.html">
+    <meta name="generator" content="Antora 3.1.3">
+    <link rel="stylesheet" href="../../_/css/site.css">
+    <script>var uiRootPath = '../../_'</script>
+  </head>
+  <body class="article">
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="https://imagicthecat.github.io/ljuv">ljuv Documentation</a>
+      <div class="navbar-item search hide-for-print">
+        <div id="search-field" class="field">
+          <input id="search-input" type="text" placeholder="Search the docs" autofocus>
+        </div>
+      </div>
+      <button class="navbar-burger" data-target="topbar-nav">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <div id="topbar-nav" class="navbar-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="#">Home</a>
+        <a class="navbar-item" href="https://github.com/ImagicTheCat/ljuv">GitHub</a>
+      </div>
+    </div>
+  </nav>
+</header>
+<div class="body">
+<div class="nav-container" data-component="ljuv" data-version="latest">
+  <aside class="nav">
+    <div class="panels">
+<div class="nav-panel-menu is-active" data-panel="menu">
+  <nav class="nav-menu">
+    <h3 class="title"><a href="index.html">ljuv</a></h3>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="0">
+<ul class="nav-list">
+  <li class="nav-item" data-depth="1">
+    <button class="nav-item-toggle"></button>
+    <span class="nav-text">API</span>
+<ul class="nav-list">
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api-basics.html">Basics</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api-handles.html">Handles</a>
+  </li>
+  <li class="nav-item" data-depth="2">
+    <a class="nav-link" href="api-thread.html">Multi-threading</a>
+  </li>
+</ul>
+  </li>
+</ul>
+  </li>
+</ul>
+  </nav>
+</div>
+<div class="nav-panel-explore" data-panel="explore">
+  <div class="context">
+    <span class="title">ljuv</span>
+    <span class="version">latest</span>
+  </div>
+  <ul class="components">
+    <li class="component is-current">
+      <a class="title" href="index.html">ljuv</a>
+      <ul class="versions">
+        <li class="version is-current is-latest">
+          <a href="index.html">latest</a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</div>
+    </div>
+  </aside>
+</div>
+<main class="article">
+<div class="toolbar" role="navigation">
+<button class="nav-toggle"></button>
+  <a href="index.html" class="home-link is-current"></a>
+<nav class="breadcrumbs" aria-label="breadcrumbs">
+  <ul>
+    <li><a href="index.html">ljuv</a></li>
+    <li><a href="index.html">ljuv Documentation</a></li>
+  </ul>
+</nav>
+</div>
+  <div class="content">
+<aside class="toc sidebar" data-title="Contents" data-levels="2">
+  <div class="toc-menu"></div>
+</aside>
+<article class="doc">
+<h1 class="page">ljuv Documentation</h1>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p><a href="https://github.com/ImagicTheCat/ljuv"><strong>ljuv</strong></a> is a module built on <a href="https://libuv.org/">libuv</a> and <a href="https://luajit.org/">LuaJIT</a> 2.1 (HEAD).</p>
+</div>
+<div class="paragraph">
+<p>A main event loop combined with coroutines can be a way to nicely parallelize and synchronize various operations; one of the computing problems.</p>
+</div>
+<div class="paragraph">
+<p>Not only a binding to <strong>libuv</strong>, the module aims to expose different levels of abstraction and address problems like multi-threading.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+When the documentation is very succinct because it is just a layer above the <strong>libuv</strong> API, refer to the <strong>libuv</strong> documentation.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_levels_of_abstraction"><a class="anchor" href="#_levels_of_abstraction"></a>Levels of abstraction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If the regular API is too high level, e.g. poor performance or some features are missing, the <strong>ljuv</strong> submodules may be directly used:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1"><code>ljuv.libuv</code></dt>
+<dd>
+<p>The FFI binding and library namespace of <strong>libuv</strong> (not exhaustive).</p>
+</dd>
+<dt class="hdlist1"><code>ljuv.wrapper</code></dt>
+<dd>
+<p>The <strong>ljuv</strong> C API, which is used to implement additional features like thread and channel.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_error_handling"><a class="anchor" href="#_error_handling"></a>Error handling</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_callbacks"><a class="anchor" href="#_callbacks"></a>Callbacks</h3>
+<div class="paragraph">
+<p>Errors from loop callbacks are properly handled; they will be deferred, queued and propagated by <a href="api-basics.html#loop-run" class="xref page">loop:run</a> as soon as possible (with a call to <a href="api-basics.html#loop-stop" class="xref page">loop:stop</a>). After an error, the state of the loop is still valid and <a href="api-basics.html#loop-run" class="xref page">loop:run</a> can be called again to propagate the next error or to continue execution.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+In most cases catching errors from <a href="api-basics.html#loop-run" class="xref page">loop:run</a>, the root of the application, is not meaningful and it should probably be done at the callback level instead.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_resources_management"><a class="anchor" href="#_resources_management"></a>Resources management</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_loop_and_handles"><a class="anchor" href="#_loop_and_handles"></a>Loop and handles</h3>
+<div class="paragraph">
+<p>Handles are created and owned by a loop, they are not garbage collected on their own. To release an handle and its resources, <a href="api-handles.html#handle-close" class="xref page">handle:close</a> must be called. A loop will close its handles when garbage collected.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Due to the design of <strong>ljuv</strong>, if an handle callback is an anchor for the associated loop, e.g. it has a reference to it directly or indirectly by its upvalues, the loop will not be garbage collected until the VM is closed. For most applications it will not matter because they will use the default global loop as their main event loop.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Although <strong>ljuv</strong> uses <strong>cdata</strong> objects, care is taken to preserve their identity in the API. When an handle is passed to a callback it will be the same <strong>cdata</strong> object created by the loop. That <strong>cdata</strong> object identifies the handle and can be used as a key.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_shared_objects"><a class="anchor" href="#_shared_objects"></a>Shared objects</h3>
+<div class="paragraph">
+<p>Objects like <strong>channels</strong> or <strong>shared flags</strong> are properly managed from multiple threads by the use of reference counting (if correctly exported/imported).</p>
+</div>
+<div class="paragraph">
+<p>An <strong>async</strong> handle exported to another thread will act more as a weak reference: the validity of the handle is checked before attempting an operation.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_string_buffers"><a class="anchor" href="#_string_buffers"></a>String buffers</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><strong>ljuv</strong> uses LuaJIT&#8217;s string buffers to pass data between threads. Look at the LuaJIT documentation to know about what kind of data is supported.</p>
+</div>
+</div>
+</div>
+<nav class="pagination">
+  <span class="next"><a href="api-basics.html">Basics</a></span>
+</nav>
+</article>
+  </div>
+</main>
+</div>
+<footer class="footer">
+  <p>This page was built using the Antora default UI.</p>
+  <p>The source code for this UI is licensed under the terms of the MPL-2.0 license.</p>
+</footer>
+<script id="site-script" src="../../_/js/site.js" data-ui-root-path="../../_"></script>
+<script async src="../../_/js/vendor/highlight.js"></script>
+<script src="../../_/js/vendor/lunr.js"></script>
+<script src="../../_/js/search-ui.js" id="search-ui-script" data-site-root-path="../.." data-snippet-length="100" data-stylesheet="../../_/css/search.css"></script>
+<script async src="../../search-index.js"></script>
+  </body>
+</html>
