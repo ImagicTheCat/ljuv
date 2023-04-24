@@ -1,5 +1,6 @@
--- https://github.com/ImagicTheCat/ljuv
 -- MIT license (see LICENSE or src/ljuv.lua)
+-- Copyright (c) 2022 ImagicTheCat
+
 local ffi = require("ffi")
 
 ffi.cdef[[
