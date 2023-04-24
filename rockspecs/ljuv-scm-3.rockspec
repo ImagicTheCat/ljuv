@@ -20,6 +20,10 @@ dependencies = {
   "lua == 5.1"
 }
 
+external_dependencies = {
+  LIBUV = { header = "uv.h" }
+}
+
 build = {
   modules = {
     ljuv = "src/ljuv.lua",
