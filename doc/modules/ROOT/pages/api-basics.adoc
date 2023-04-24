@@ -1,0 +1,39 @@
+= Basics
+
+== ljuv.loop
+
+Default loop, lazily created.
+
+== ljuv.assert(code)
+
+Assert a *libuv* error code.
+
+== Loop
+
+=== ljuv.new_loop()
+
+Create a loop.
+
+[#loop-run]
+=== loop:run([mode])
+
+mode:: string: `default`, `once` or `nowait`
+
+Returns a boolean status, *true* if there is work left in the loop and the function should be called again, *false* otherwise.
+
+=== loop:alive()
+
+Returns a boolean.
+
+[#loop-stop]
+=== loop:stop()
+
+Stop the loop.
+
+=== loop:now()
+
+Get the current loop time (in seconds).
+
+=== loop:update_time()
+
+Update the current loop time.

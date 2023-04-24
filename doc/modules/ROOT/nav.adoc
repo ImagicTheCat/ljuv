@@ -1,4 +1,4 @@
-* API Reference
-** xref:api-base.adoc[]
+* API
+** xref:api-basics.adoc[]
+** xref:api-handles.adoc[]
 ** xref:api-thread.adoc[]
-** xref:api-loop.adoc[]

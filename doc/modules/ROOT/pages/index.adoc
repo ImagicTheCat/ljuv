@@ -19,17 +19,17 @@ If the regular API is too high level, e.g. poor performance or some features are
 
 === Callbacks
 
-Errors from loop callbacks are properly handled; they will be deferred, queued and propagated by xref:api-loop.adoc#loop-run[loop:run] as soon as possible (with a call to xref:api-loop.adoc#loop-stop[loop:stop]). After an error, the state of the loop is still valid and xref:api-loop.adoc#loop-run[loop:run] can be called again to propagate the next error or to continue execution.
+Errors from loop callbacks are properly handled; they will be deferred, queued and propagated by xref:api-basics.adoc#loop-run[loop:run] as soon as possible (with a call to xref:api-basics.adoc#loop-stop[loop:stop]). After an error, the state of the loop is still valid and xref:api-basics.adoc#loop-run[loop:run] can be called again to propagate the next error or to continue execution.
 
-NOTE: In most cases catching errors from xref:api-loop.adoc#loop-run[loop:run], the root of the application, is not meaningful and should probably be done at the callback level instead.
+NOTE: In most cases catching errors from xref:api-basics.adoc#loop-run[loop:run], the root of the application, is not meaningful and it should probably be done at the callback level instead.
 
 == Resources management
 
 === Loop and handles
 
-Handles are created and owned by a loop, they are not garbage collected on their own. To release an handle and its resources, xref:api-loop.adoc#handle-close[handle:close] must be called. A loop will close its handles when garbage collected.
+Handles are created and owned by a loop, they are not garbage collected on their own. To release an handle and its resources, xref:api-handles.adoc#handle-close[handle:close] must be called. A loop will close its handles when garbage collected.
 
-WARNING: Due to the design of *ljuv*, if an handle callback is an anchor for the associated loop, e.g. it has a reference to it directly or indirectly by its upvalues, the loop will not be garbage collected until the VM is closed. For most applications it doesn't matter because they will use the default global loop as their main event loop.
+WARNING: Due to the design of *ljuv*, if an handle callback is an anchor for the associated loop, e.g. it has a reference to it directly or indirectly by its upvalues, the loop will not be garbage collected until the VM is closed. For most applications it will not matter because they will use the default global loop as their main event loop.
 
 Although *ljuv* uses *cdata* objects, care is taken to preserve their identity in the API. When an handle is passed to a callback it will be the same *cdata* object created by the loop. That *cdata* object identifies the handle and can be used as a key.
 
