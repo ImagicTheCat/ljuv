@@ -417,6 +417,16 @@ function Loop:threadpool(thread_count, interface_loader, ...)
     end
     -- propagate thread error
     assert(ok, err)
+    -- close callback
+    if exit_count == thread_count then
+      local callback = o.close_callback
+      if callback then
+        if type(callback) == "thread" then
+          local ok, err = coroutine.resume(callback)
+          if not ok then error(debug.traceback(callback, err), 0) end
+        else callback() end
+      end
+    end
   end
   for i=1, thread_count do
     self:thread(threadpool_entry_bc, thread_callback,
@@ -445,17 +455,33 @@ function threadpool:call(op, callback, ...)
   self.tasks[id] = callback
 end
 
--- (idempotent)
+-- (async, idempotent)
 -- Close the thread pool (send exit signal to all threads).
 --
--- There are no mechanisms to directly wait on the termination of the
--- threadpool, because only the application knows the context of the work it
--- has to do. I.e. this method should be called when all work is done.
-function threadpool:close()
-  if self.closed then return end
+-- This method should be called when all work is done, because only the
+-- application knows the context of the work it yet has to do.
+--
+-- With a callback: (async) called when closed
+-- Without: (sync) wait from the current coroutine
+function threadpool:close(callback)
+  -- already closing/closed
+  if self.closed then
+    if callback then callback() end
+    return
+  end
+  -- closing
   self.closed = true
+  -- callback and coroutine sync setup
+  if not callback then
+    local co, main = coroutine.running()
+    if not co or main then error("sync close from a non-coroutine thread") end
+    callback = co
+  end
+  self.close_callback = callback
   -- send exit signal
   for i=1, self.thread_count do self.cin:push("exit") end
+  -- yield
+  if type(callback) == "thread" then coroutine.yield(co) end
 end
 
 return ljuv

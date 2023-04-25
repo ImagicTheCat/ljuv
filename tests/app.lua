@@ -20,4 +20,4 @@ coroutine.resume(coroutine.create(function()
 end))
 
 ljuv.loop:run()
-assert(exited)
+assert(exited and pool.closed)

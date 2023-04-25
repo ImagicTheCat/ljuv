@@ -134,10 +134,11 @@ pool.interface.test(42)
 ----
 ====
 
-=== threadpool:close()
+=== threadpool:close([callback])
 
 Close the thread pool (send exit signal to all threads). Idempotent.
 
-CAUTION: There are no mechanisms to directly wait on the termination of the threadpool, because only the application knows the context of the work it has to do. I.e. this method should be called when all work is done.
+Without a callback (sync):: wait from the current coroutine
+With a callback (async):: called when closed
 
-
+NOTE: This method should be called when all work is done, because only the application knows the context of the work it yet has to do.
