@@ -262,7 +262,7 @@ The returned payload must be imported exactly once to prevent memory leak and in
 </div>
 </div>
 <div class="sect1">
-<h2 id="_high_level_abstractions"><a class="anchor" href="#_high_level_abstractions"></a>High-level abstractions</h2>
+<h2 id="_thread_abstraction"><a class="anchor" href="#_thread_abstraction"></a>Thread abstraction</h2>
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_loopthreadentry_callback"><a class="anchor" href="#_loopthreadentry_callback"></a>loop:thread(entry, callback, &#8230;&#8203;)</h3>
@@ -312,11 +312,34 @@ It uses <code>string.dump</code> to convert the Lua function to bytecode. Nothin
 </dd>
 </dl>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The Lua VM of the thread is closed from the system thread of the loop.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_threadpool_abstraction"><a class="anchor" href="#_threadpool_abstraction"></a>Threadpool abstraction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This abstraction, built on the previous one, implements a way to distribute operations among multiple threads from the "main" thread. Each thread instantiates the interface to process the work it is given.</p>
+</div>
+<div class="paragraph">
+<p>I.e. main thread &#8594; split workload &#8594; worker threads &#8594; gather results &#8594; main thread.</p>
 </div>
 <div class="sect2">
-<h3 id="_loopthreadpoolthread_count_interface_loader"><a class="anchor" href="#_loopthreadpoolthread_count_interface_loader"></a>loop:threadpool(thread_count, interface_loader)</h3>
+<h3 id="_loopthreadpoolthread_count_interface_loader"><a class="anchor" href="#_loopthreadpoolthread_count_interface_loader"></a>loop:threadpool(thread_count, interface_loader, &#8230;&#8203;)</h3>
 <div class="paragraph">
-<p>Create a thread pool.</p>
+<p>Create a system-thread pool.</p>
 </div>
 <div class="dlist">
 <dl>
@@ -328,7 +351,26 @@ It uses <code>string.dump</code> to convert the Lua function to bytecode. Nothin
 <dd>
 <p>Lua function or code, plain or bytecode, which returns a map of functions (called from worker threads)</p>
 </dd>
+<dt class="hdlist1">&#8230;&#8203;</dt>
+<dd>
+<p>interface loader arguments</p>
+</dd>
 </dl>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-warning" title="Warning"></i>
+</td>
+<td class="content">
+Because each thread will execute the same interface loader, be careful to not use exported shared objects as arguments.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>If the interface has an <code>__exit</code> function, it will be called before the end of the thread, after the exit of the work loop. It can be used to clean up interface resources.</p>
 </div>
 </div>
 <div class="sect2">
@@ -372,18 +414,30 @@ It uses <code>string.dump</code> to convert the Lua function to bytecode. Nothin
 </div>
 </div>
 <div class="sect2">
-<h3 id="_threadpoolclose"><a class="anchor" href="#_threadpoolclose"></a>threadpool:close()</h3>
+<h3 id="_threadpoolclosecallback"><a class="anchor" href="#_threadpoolclosecallback"></a>threadpool:close([callback])</h3>
 <div class="paragraph">
 <p>Close the thread pool (send exit signal to all threads). Idempotent.</p>
 </div>
-<div class="admonitionblock caution">
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Without a callback (sync)</dt>
+<dd>
+<p>wait from the current coroutine</p>
+</dd>
+<dt class="hdlist1">With a callback (async)</dt>
+<dd>
+<p>called when closed</p>
+</dd>
+</dl>
+</div>
+<div class="admonitionblock note">
 <table>
 <tr>
 <td class="icon">
-<i class="fa icon-caution" title="Caution"></i>
+<i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-There are no mechanisms to directly wait on the termination of the threadpool, because only the application knows the context of the work it has to do. I.e. this method should be called when all work is done.
+This method should be called when all work is done, because only the application knows the context of the work it yet has to give to the pool.
 </td>
 </tr>
 </table>
