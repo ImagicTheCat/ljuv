@@ -351,6 +351,8 @@ local function threadpool_entry(async, cin, cout, interface_code, ...)
     -- next
     msg = cin:pull()
   end
+  -- exit
+  if interface.__exit then interface.__exit() end
 end
 local threadpool_entry_bc = string.dump(threadpool_entry)
 

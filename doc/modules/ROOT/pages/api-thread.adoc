@@ -100,13 +100,17 @@ I.e. main thread -> split workload -> worker threads -> gather results -> main t
 
 === loop:threadpool(thread_count, interface_loader, ...)
 
-Create a thread pool.
+Create a system-thread pool.
 
 thread_count:: number of threads in the pool
 interface_loader:: Lua function or code, plain or bytecode, which returns a map of functions (called from worker threads)
 ...:: interface loader arguments
 
 WARNING: Because each thread will execute the same interface loader, be careful to not use exported shared objects as arguments.
+
+If the interface has an `__exit` function, it will be called before the end of the thread, after the exit of the work loop. It can be used to clean up interface resources.
+
+NOTE: The Lua VM of the thread is closed from the system thread which created the pool.
 
 [#threadpool:call]
 === threadpool:call(op, callback, ...)
