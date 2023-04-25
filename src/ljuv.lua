@@ -459,7 +459,7 @@ end
 -- Close the thread pool (send exit signal to all threads).
 --
 -- This method should be called when all work is done, because only the
--- application knows the context of the work it yet has to do.
+-- application knows the context of the work it yet has to give to the pool.
 --
 -- With a callback: (async) called when closed
 -- Without: (sync) wait from the current coroutine

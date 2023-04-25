@@ -92,9 +92,11 @@ NOTE: It uses `string.dump` to convert the Lua function to bytecode. Nothing wil
 callback(ok, ...):: Called when terminated; common soft error handling interface: returns *ok* status followed by an error message or the function return values (encoded by String Buffers).
 ...:: arguments passed to the function, must be encodable by String Buffers
 
+NOTE: The Lua VM of the thread is closed from the system thread of the loop.
+
 == Threadpool abstraction
 
-This abstraction implements a way to distribute operations among multiple threads from the "main" thread. Each thread instantiates the interface to process the work it is given.
+This abstraction, built on the previous one, implements a way to distribute operations among multiple threads from the "main" thread. Each thread instantiates the interface to process the work it is given.
 
 I.e. main thread -> split workload -> worker threads -> gather results -> main thread.
 
@@ -109,8 +111,6 @@ interface_loader:: Lua function or code, plain or bytecode, which returns a map 
 WARNING: Because each thread will execute the same interface loader, be careful to not use exported shared objects as arguments.
 
 If the interface has an `__exit` function, it will be called before the end of the thread, after the exit of the work loop. It can be used to clean up interface resources.
-
-NOTE: The Lua VM of the thread is closed from the system thread which created the pool.
 
 [#threadpool:call]
 === threadpool:call(op, callback, ...)
@@ -141,4 +141,4 @@ Close the thread pool (send exit signal to all threads). Idempotent.
 Without a callback (sync):: wait from the current coroutine
 With a callback (async):: called when closed
 
-NOTE: This method should be called when all work is done, because only the application knows the context of the work it yet has to do.
+NOTE: This method should be called when all work is done, because only the application knows the context of the work it yet has to give to the pool.
