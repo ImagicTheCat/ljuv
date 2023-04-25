@@ -142,3 +142,9 @@ Without a callback (sync):: wait from the current coroutine
 With a callback (async):: called when closed
 
 NOTE: This method should be called when all work is done, because only the application knows the context of the work it yet has to give to the pool.
+
+=== threadpool.tasks
+
+Table/map of `id` => `callback`.
+
+Can be used to check if the pool is busy (waiting on tasks to return).
