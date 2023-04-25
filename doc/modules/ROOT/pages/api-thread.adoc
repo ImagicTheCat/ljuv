@@ -75,7 +75,7 @@ soft:: truthy to not throw errors on invalid payload (returns nothing)
 
 Returns imported object.
 
-== High-level abstractions
+== Thread abstraction
 
 === loop:thread(entry, callback, ...)
 
@@ -92,12 +92,21 @@ NOTE: It uses `string.dump` to convert the Lua function to bytecode. Nothing wil
 callback(ok, ...):: Called when terminated; common soft error handling interface: returns *ok* status followed by an error message or the function return values (encoded by String Buffers).
 ...:: arguments passed to the function, must be encodable by String Buffers
 
-=== loop:threadpool(thread_count, interface_loader)
+== Threadpool abstraction
+
+This abstraction implements a way to distribute operations among multiple threads from the "main" thread. Each thread instantiates the interface to process the work it is given.
+
+I.e. main thread -> split workload -> worker threads -> gather results -> main thread.
+
+=== loop:threadpool(thread_count, interface_loader, ...)
 
 Create a thread pool.
 
 thread_count:: number of threads in the pool
 interface_loader:: Lua function or code, plain or bytecode, which returns a map of functions (called from worker threads)
+...:: interface loader arguments
+
+WARNING: Because each thread will execute the same interface loader, be careful to not use exported shared objects as arguments.
 
 [#threadpool:call]
 === threadpool:call(op, callback, ...)
